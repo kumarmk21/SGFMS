@@ -1,0 +1,130 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import AppLayout from '@/components/layout/AppLayout';
+import LoginPage from '@/pages/auth/LoginPage';
+import ReceptionistDashboard from '@/pages/receptionist/Dashboard';
+import CheckInPage from '@/pages/receptionist/CheckInPage';
+import CouriersPage from '@/pages/receptionist/CouriersPage';
+import CheckOutsPage from '@/pages/receptionist/CheckOutsPage';
+import OfficialDashboard from '@/pages/official/OfficialDashboard';
+import NotificationsPage from '@/pages/official/NotificationsPage';
+import ApprovalsPage from '@/pages/official/ApprovalsPage';
+import UserManagementPage from '@/pages/admin/UserManagementPage';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 1000 * 30, retry: 1 },
+  },
+});
+
+function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
+  const { session, profile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          </div>
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) return <Navigate to="/login" replace />;
+
+  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+    if (profile.role === 'official') return <Navigate to="/official" replace />;
+    return <Navigate to="/receptionist" replace />;
+  }
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
+function RootRedirect() {
+  const { session, profile, loading } = useAuth();
+  if (loading) return null;
+  if (!session) return <Navigate to="/login" replace />;
+  if (profile?.role === 'official') return <Navigate to="/official" replace />;
+  return <Navigate to="/receptionist" replace />;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<RootRedirect />} />
+
+      {/* Receptionist routes */}
+      <Route path="/receptionist" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <ReceptionistDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/checkin" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <CheckInPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/couriers" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <CouriersPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/couriers/new" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <CouriersPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/checkouts" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <CheckOutsPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Company official routes */}
+      <Route path="/official" element={
+        <ProtectedRoute allowedRoles={['official', 'admin']}>
+          <OfficialDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/official/notifications" element={
+        <ProtectedRoute allowedRoles={['official', 'admin']}>
+          <NotificationsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/official/approvals" element={
+        <ProtectedRoute allowedRoles={['official', 'admin']}>
+          <ApprovalsPage />
+        </ProtectedRoute>
+      } />
+
+      {/* Admin routes */}
+      <Route path="/admin/users" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <UserManagementPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+          <Toaster position="top-right" richColors closeButton />
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+}
