@@ -66,7 +66,7 @@ export function getVisitorTypeColor(type: string): string {
   switch (type) {
     case 'courier': return 'bg-purple-100 text-purple-800';
     case 'delivery_agent': return 'bg-blue-100 text-blue-800';
-    case 'visitor': return 'bg-orange-100 text-orange-800';
+    case 'visitor': return 'bg-red-100 text-red-800';
     default: return 'bg-gray-100 text-gray-800';
   }
 }

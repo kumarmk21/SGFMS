@@ -29,7 +29,7 @@ const schema = z.object({
 type CheckInForm = z.infer<typeof schema>;
 
 const visitorTypes = [
-  { value: 'visitor', label: 'Visitor', icon: User, color: 'border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100' },
+  { value: 'visitor', label: 'Visitor', icon: User, color: 'border-red-200 bg-red-50 text-[#CC0000] hover:bg-red-100' },
   { value: 'delivery_agent', label: 'Delivery Agent', icon: Truck, color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100' },
   { value: 'courier', label: 'Courier', icon: Package, color: 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100' },
 ];

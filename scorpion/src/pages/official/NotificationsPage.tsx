@@ -28,7 +28,7 @@ function NotificationCard({ notification }: { notification: Notification }) {
   const bgColors: Record<string, string> = {
     courier: 'bg-purple-100 text-purple-600',
     delivery_agent: 'bg-blue-100 text-blue-600',
-    visitor: 'bg-orange-100 text-orange-600',
+    visitor: 'bg-red-100 text-[#CC0000]',
   };
 
   return (

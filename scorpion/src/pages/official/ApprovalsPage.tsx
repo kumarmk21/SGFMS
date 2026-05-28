@@ -72,7 +72,7 @@ export default function ApprovalsPage() {
                   'border-2 transition-all',
                   approvedId === checkIn.id
                     ? 'border-green-200 bg-green-50'
-                    : 'border-orange-200 hover:shadow-md'
+                    : 'border-red-200 hover:shadow-md'
                 )}
               >
                 <CardContent className="p-4">
