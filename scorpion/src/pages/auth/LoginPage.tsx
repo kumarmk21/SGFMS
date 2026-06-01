@@ -9,7 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import ScorpionLogo from '@/components/layout/ScorpionLogo';
 import { toast } from 'sonner';
+
+const BRAND = '#CC0000';
+const BRAND_DARK = '#A80000';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -48,77 +52,79 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — Scorpion red brand */}
+
+      {/* ── Left brand panel ── */}
       <div
-        className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden"
-        style={{ backgroundColor: '#CC0000' }}
+        className="hidden lg:flex lg:w-[45%] flex-col items-center justify-center p-12 relative overflow-hidden"
+        style={{ background: `linear-gradient(145deg, ${BRAND} 0%, ${BRAND_DARK} 100%)` }}
       >
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full border-[40px] border-white" />
-          <div className="absolute -bottom-32 -right-16 w-80 h-80 rounded-full border-[30px] border-white" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border-[20px] border-white" />
+        {/* Decorative rings */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-28 -left-28 w-96 h-96 rounded-full border-[50px] border-white/10" />
+          <div className="absolute -bottom-40 -right-20 w-[28rem] h-[28rem] rounded-full border-[40px] border-white/10" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] h-[560px] rounded-full border-[25px] border-white/5" />
         </div>
 
         <div className="relative z-10 text-center">
-          <img
-            src="/scorpion-logo.png"
-            alt="Scorpion"
-            className="h-28 w-auto object-contain mx-auto mb-8 drop-shadow-2xl"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-            }}
-          />
-          <h2 className="text-white text-3xl font-bold mb-3">Visitor Management System</h2>
-          <p className="text-white/75 text-base max-w-xs leading-relaxed">
+          {/* Logo */}
+          <div className="mb-8">
+            <ScorpionLogo heightClass="h-28" className="mx-auto drop-shadow-xl" />
+          </div>
+
+          <h2 className="text-white text-3xl font-bold mb-3 drop-shadow">
+            Visitor Management System
+          </h2>
+          <p className="text-white/70 text-sm max-w-xs mx-auto leading-relaxed">
             Streamline visitor check-ins, courier receipts and access approvals — all in one place.
           </p>
 
-          <div className="mt-10 grid grid-cols-3 gap-4 text-center">
+          {/* Feature cards */}
+          <div className="mt-10 grid grid-cols-3 gap-3">
             {[
-              { label: 'Visitor Tracking',   icon: '👥' },
-              { label: 'Courier Receipts',   icon: '📦' },
-              { label: 'Smart Approvals',    icon: '✅' },
+              { label: 'Visitor Tracking',  icon: '👥' },
+              { label: 'Courier Receipts',  icon: '📦' },
+              { label: 'Smart Approvals',   icon: '✅' },
             ].map(({ label, icon }) => (
-              <div key={label} className="bg-white/15 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-2xl mb-1">{icon}</div>
-                <p className="text-white text-xs font-medium leading-tight">{label}</p>
+              <div
+                key={label}
+                className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/10"
+              >
+                <div className="text-2xl mb-2">{icon}</div>
+                <p className="text-white text-xs font-semibold leading-tight">{label}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right panel — login form */}
+      {/* ── Right login form ── */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gray-50">
+
         {/* Mobile logo */}
         <div className="lg:hidden mb-8 text-center">
           <div
-            className="inline-flex items-center justify-center w-20 h-14 rounded-2xl mb-3"
-            style={{ backgroundColor: '#CC0000' }}
+            className="inline-flex items-center justify-center w-24 h-16 rounded-2xl mb-3 shadow-md"
+            style={{ background: `linear-gradient(145deg, ${BRAND} 0%, ${BRAND_DARK} 100%)` }}
           >
-            <img
-              src="/scorpion-logo.png"
-              alt="Scorpion"
-              className="h-10 w-auto object-contain"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = 'none';
-              }}
-            />
+            <ScorpionLogo heightClass="h-10" />
           </div>
-          <p className="text-sm text-muted-foreground font-medium">Visitor Management System</p>
+          <p className="text-sm text-muted-foreground font-medium tracking-wide">
+            Visitor Management System
+          </p>
         </div>
 
         <div className="w-full max-w-md">
-          <Card className="shadow-xl border-0">
+          <Card className="shadow-2xl border-0">
             <CardHeader className="pb-4 pt-8 px-8">
-              <CardTitle className="text-2xl font-bold" style={{ color: '#CC0000' }}>
+              <CardTitle className="text-2xl font-bold" style={{ color: BRAND }}>
                 Sign In
               </CardTitle>
               <CardDescription>Enter your credentials to access the system</CardDescription>
             </CardHeader>
+
             <CardContent className="px-8 pb-8">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                {/* Email */}
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-sm font-semibold">Email Address</Label>
                   <Input
@@ -127,11 +133,15 @@ export default function LoginPage() {
                     placeholder="you@scorpion.com"
                     autoComplete="email"
                     {...register('email')}
-                    className={`h-11 ${errors.email ? 'border-destructive' : 'focus-visible:ring-[#CC0000]/30 focus-visible:border-[#CC0000]'}`}
+                    className={`h-11 ${errors.email ? 'border-destructive' : ''}`}
+                    style={{ outline: 'none' }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = BRAND; e.currentTarget.style.boxShadow = `0 0 0 3px ${BRAND}20`; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = ''; }}
                   />
                   {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                 </div>
 
+                {/* Password */}
                 <div className="space-y-1.5">
                   <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
                   <div className="relative">
@@ -141,12 +151,14 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       autoComplete="current-password"
                       {...register('password')}
-                      className={`h-11 pr-10 ${errors.password ? 'border-destructive' : 'focus-visible:ring-[#CC0000]/30 focus-visible:border-[#CC0000]'}`}
+                      className={`h-11 pr-10 ${errors.password ? 'border-destructive' : ''}`}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = BRAND; e.currentTarget.style.boxShadow = `0 0 0 3px ${BRAND}20`; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = ''; }}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -154,28 +166,33 @@ export default function LoginPage() {
                   {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
                 </div>
 
+                {/* Submit */}
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-semibold mt-2"
-                  style={{ backgroundColor: '#CC0000' }}
+                  className="w-full h-12 text-base font-semibold mt-1 transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: BRAND }}
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
                 </Button>
               </form>
 
-              <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl text-xs text-muted-foreground">
-                <p className="font-semibold text-[#CC0000] mb-2">Demo Accounts:</p>
-                <div className="space-y-1">
-                  <p>Receptionist: receptionist@scorpion.com / password123</p>
-                  <p>Official: official@scorpion.com / password123</p>
-                  <p>Admin: admin@scorpion.com / password123</p>
+              {/* Demo accounts */}
+              <div
+                className="mt-6 p-4 rounded-xl text-xs"
+                style={{ backgroundColor: `${BRAND}0D`, border: `1px solid ${BRAND}25` }}
+              >
+                <p className="font-bold mb-2" style={{ color: BRAND }}>Demo Accounts</p>
+                <div className="space-y-1 text-muted-foreground">
+                  <p><span className="font-medium text-foreground">Receptionist:</span> receptionist@scorpion.com / password123</p>
+                  <p><span className="font-medium text-foreground">Official:</span> official@scorpion.com / password123</p>
+                  <p><span className="font-medium text-foreground">Admin:</span> admin@scorpion.com / password123</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <p className="text-center text-xs text-muted-foreground mt-5">
             © 2026 Scorpion. All rights reserved.
           </p>
         </div>

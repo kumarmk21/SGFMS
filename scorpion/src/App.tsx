@@ -27,8 +27,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-3">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <div className="w-14 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{background: "linear-gradient(145deg,#CC0000,#A80000)"}}>
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /><img src="/scorpion-logo.svg" alt="" className="sr-only" />
           </div>
           <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
