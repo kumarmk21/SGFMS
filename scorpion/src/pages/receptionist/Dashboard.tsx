@@ -56,7 +56,21 @@ export default function ReceptionistDashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold">{greeting}, {profile?.full_name?.split(' ')[0]}!</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="text-sm font-medium text-gray-700">{profile?.full_name}</span>
+            {profile?.designation && (
+              <>
+                <span className="text-muted-foreground text-sm">·</span>
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: '#CC000015', color: '#CC0000' }}
+                >
+                  {profile.designation}
+                </span>
+              </>
+            )}
+          </div>
+          <p className="text-muted-foreground text-xs mt-1">
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>

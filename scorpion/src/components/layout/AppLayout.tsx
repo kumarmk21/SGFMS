@@ -111,7 +111,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold truncate">{profile?.full_name}</p>
-            <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {profile?.designation ?? profile?.role}
+            </p>
           </div>
         </div>
         <Button
