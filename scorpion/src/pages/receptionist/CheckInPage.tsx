@@ -90,12 +90,18 @@ export default function CheckInPage() {
           : `${data.full_name} (${data.mobile_number}) is waiting at reception to meet you. Purpose: ${data.purpose_of_visit ?? 'Not specified'}. Time: ${new Date().toLocaleTimeString()}`;
 
       await sendNotification.mutateAsync({
-        recipient_id: selectedOfficial.id,
-        sender_id: profile!.id,
-        check_in_id: checkIn.id,
-        title: `${typeLabel} Arrived`,
+        recipient_id:   selectedOfficial.id,
+        sender_id:      profile!.id,
+        check_in_id:    checkIn.id,
+        title:          `${typeLabel} Arrived`,
         message,
         notification_type: 'in_app',
+        // Extra fields for email notification
+        visitor_name:   data.full_name,
+        visitor_mobile: data.mobile_number,
+        visitor_type:   data.visitor_type,
+        purpose:        data.purpose_of_visit ?? null,
+        check_in_time:  new Date().toISOString(),
       });
     }
 

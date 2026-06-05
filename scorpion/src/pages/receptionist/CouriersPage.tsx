@@ -69,12 +69,20 @@ export default function CouriersPage() {
     });
 
     await sendNotification.mutateAsync({
-      recipient_id: selectedRecipient.id,
-      sender_id: profile!.id,
+      recipient_id:       selectedRecipient.id,
+      sender_id:          profile!.id,
       courier_receipt_id: receipt.id,
-      title: 'Courier Package Received',
-      message: `A courier package has arrived for you from ${data.sender_name}. ${data.number_of_packages} package(s) — ${data.package_description}. ${data.tracking_number ? `Tracking: ${data.tracking_number}.` : ''} Collected at reception.`,
+      title:   'Courier Package Received',
+      message: `A courier package has arrived for you from ${data.sender_name}. ${Number(data.number_of_packages)} package(s) — ${data.package_description}. ${data.tracking_number ? `Tracking: ${data.tracking_number}.` : ''} Collected at reception.`,
       notification_type: 'in_app',
+      // Extra fields for courier email
+      sender_name:          data.sender_name,
+      sender_address:       data.sender_address,
+      tracking_number:      data.tracking_number ?? null,
+      package_description:  data.package_description,
+      number_of_packages:   Number(data.number_of_packages),
+      package_weight:       data.package_weight ?? null,
+      check_in_time:        new Date().toISOString(),
     });
 
     setSuccess(true);

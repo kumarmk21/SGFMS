@@ -411,7 +411,19 @@ export default function UserManagementPage() {
                       </Badge>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                      {user.email && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Mail className="w-3 h-3" />{user.email}</span>}
+                      {user.email && (
+                        <span className={cn(
+                          'text-xs flex items-center gap-0.5',
+                          user.email ? 'text-muted-foreground' : 'text-red-500 font-medium'
+                        )}>
+                          <Mail className="w-3 h-3" />{user.email}
+                        </span>
+                      )}
+                      {!user.email && (
+                        <span className="text-xs text-red-500 flex items-center gap-0.5 font-medium">
+                          <Mail className="w-3 h-3" />No email — notifications won't be sent
+                        </span>
+                      )}
                       {user.department && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building className="w-3 h-3" />{user.department}</span>}
                       {user.contact_number && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Phone className="w-3 h-3" />{user.contact_number}</span>}
                     </div>
@@ -677,9 +689,10 @@ export default function UserManagementPage() {
 function EditUserForm({ user, onClose }: { user: Profile; onClose: () => void }) {
   const updateProfile = useUpdateProfile();
   const [values, setValues] = useState({
-    full_name: user.full_name,
-    department: user.department ?? '',
-    designation: user.designation ?? '',
+    full_name:      user.full_name,
+    email:          user.email ?? '',
+    department:     user.department ?? '',
+    designation:    user.designation ?? '',
     contact_number: user.contact_number ?? '',
   });
 
@@ -687,6 +700,7 @@ function EditUserForm({ user, onClose }: { user: Profile; onClose: () => void })
     await updateProfile.mutateAsync({
       id: user.id,
       ...values,
+      email:           values.email           || null,
       department:      values.department      || null,
       designation:     values.designation     || null,
       contact_number:  values.contact_number  || null,
@@ -699,6 +713,21 @@ function EditUserForm({ user, onClose }: { user: Profile; onClose: () => void })
       <div className="space-y-1.5">
         <Label>Full Name</Label>
         <Input value={values.full_name} onChange={e => setValues(v => ({ ...v, full_name: e.target.value }))} />
+      </div>
+      {/* Email — used for visitor arrival notifications */}
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5">
+          Email Address
+          <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">
+            used for notifications
+          </span>
+        </Label>
+        <Input
+          type="email"
+          placeholder="name@scorpiongroup.in"
+          value={values.email}
+          onChange={e => setValues(v => ({ ...v, email: e.target.value }))}
+        />
       </div>
       <div className="space-y-1.5">
         <Label>Department</Label>
