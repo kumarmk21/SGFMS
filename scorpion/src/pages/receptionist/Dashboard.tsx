@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   UserPlus, Package, CheckSquare, Users, Clock, TrendingUp,
-  ArrowRight, AlertCircle, RefreshCw
+  ArrowRight, AlertCircle, RefreshCw, BarChart2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,7 +112,7 @@ export default function ReceptionistDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Link to="/receptionist/checkin">
           <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer group">
             <CardContent className="p-5 flex items-center gap-4">
@@ -156,6 +156,23 @@ export default function ReceptionistDashboard() {
               {pending.length > 0 && (
                 <Badge variant="warning">{pending.length}</Badge>
               )}
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/receptionist/reports">
+          <Card className="hover:shadow-md transition-all cursor-pointer group" style={{ borderColor: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#CC000030')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'transparent')}
+          >
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#CC000015' }}>
+                <BarChart2 className="w-6 h-6" style={{ color: '#CC0000' }} />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold">Reports</p>
+                <p className="text-xs text-muted-foreground">Visitor &amp; Courier</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
             </CardContent>
           </Card>
         </Link>
