@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Camera, X, UserCheck, Package, Truck, User, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Camera, X, UserCheck, Truck, User, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,16 +22,15 @@ import { toast } from 'sonner';
 const schema = z.object({
   mobile_number: z.string().min(7, 'Enter a valid mobile number').max(15),
   full_name: z.string().min(2, 'Full name is required'),
-  visitor_type: z.enum(['courier', 'delivery_agent', 'visitor']),
+  visitor_type: z.enum(['delivery_agent', 'visitor']),
   purpose_of_visit: z.string().optional(),
 });
 
 type CheckInForm = z.infer<typeof schema>;
 
 const visitorTypes = [
-  { value: 'visitor', label: 'Visitor', icon: User, color: 'border-red-200 bg-red-50 text-[#CC0000] hover:bg-red-100' },
+  { value: 'visitor',        label: 'Visitor',        icon: User,  color: 'border-red-200 bg-red-50 text-[#CC0000] hover:bg-red-100' },
   { value: 'delivery_agent', label: 'Delivery Agent', icon: Truck, color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100' },
-  { value: 'courier', label: 'Courier', icon: Package, color: 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100' },
 ];
 
 export default function CheckInPage() {
@@ -53,12 +52,13 @@ export default function CheckInPage() {
   });
 
   const visitorType = watch('visitor_type');
-  const needsOfficial = visitorType === 'visitor' || visitorType === 'delivery_agent';
+  const needsOfficial = true; // both visitor types require an official
 
   useEffect(() => {
     if (returningVisitor) {
       setValue('full_name', returningVisitor.full_name);
-      setValue('visitor_type', returningVisitor.visitor_type);
+      const vt = returningVisitor.visitor_type === 'courier' ? 'visitor' : returningVisitor.visitor_type;
+      setValue('visitor_type', vt as 'visitor' | 'delivery_agent');
       if (returningVisitor.photo_url) setPhotoUrl(returningVisitor.photo_url);
     }
   }, [returningVisitor, setValue]);
@@ -83,9 +83,7 @@ export default function CheckInPage() {
 
     if (selectedOfficial && checkIn) {
       const typeLabel = visitorTypes.find(t => t.value === data.visitor_type)?.label ?? data.visitor_type;
-      const message = data.visitor_type === 'courier'
-        ? `A courier has arrived for you. Courier: ${data.full_name} (${data.mobile_number}). Time: ${new Date().toLocaleTimeString()}`
-        : data.visitor_type === 'delivery_agent'
+      const message = data.visitor_type === 'delivery_agent'
           ? `A delivery agent is waiting at reception. Agent: ${data.full_name} (${data.mobile_number}). Time: ${new Date().toLocaleTimeString()}`
           : `${data.full_name} (${data.mobile_number}) is waiting at reception to meet you. Purpose: ${data.purpose_of_visit ?? 'Not specified'}. Time: ${new Date().toLocaleTimeString()}`;
 
@@ -105,15 +103,11 @@ export default function CheckInPage() {
       });
     }
 
-    if (data.visitor_type === 'courier') {
-      navigate(`/receptionist/couriers/new?checkinId=${checkIn.id}`);
-    } else {
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        navigate('/receptionist');
-      }, 2000);
-    }
+    setSuccess(true);
+    setTimeout(() => {
+      setSuccess(false);
+      navigate('/receptionist');
+    }, 2000);
   };
 
   if (success) {
@@ -217,7 +211,7 @@ export default function CheckInPage() {
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setValue('visitor_type', value as VisitorType)}
+                  onClick={() => setValue('visitor_type', value as 'visitor' | 'delivery_agent')}
                   className={cn(
                     'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
                     visitorType === value ? color : 'border-border bg-background hover:bg-muted'
@@ -276,7 +270,7 @@ export default function CheckInPage() {
           ) : (
             <UserCheck className="w-5 h-5" />
           )}
-          {visitorType === 'courier' ? 'Check In & Log Courier' : 'Complete Check-In'}
+          Complete Check-In
         </Button>
       </form>
 
