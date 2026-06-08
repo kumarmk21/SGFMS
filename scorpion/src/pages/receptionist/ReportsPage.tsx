@@ -653,7 +653,7 @@ function AcknowledgementReport() {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
   };
 
-  const totalPackages  = rows?.reduce((s, r) => s + Number(r.packages || 1), 0) ?? 0;
+
   const generatedOn    = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 
   return (
@@ -805,39 +805,16 @@ function AcknowledgementReport() {
                 </div>
               )}
 
-              {/* Summary */}
-              {rows && rows.length > 0 && (
-                <div className="summary grid grid-cols-2 gap-4 px-6 py-4 bg-gray-50 border-t border-b max-w-xs">
-                  {[
-                    { label: 'Total Receipts',  value: rows.length },
-                    { label: 'Total Packages',  value: totalPackages },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="text-center">
-                      <p className="text-2xl font-bold" style={{ color: '#CC0000' }}>{value}</p>
-                      <p className="text-xs text-muted-foreground">{label}</p>
-                    </div>
-                  ))}
+              {/* Name + Signature — right after the table */}
+              <div className="px-6 py-5 border-t flex items-end justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-gray-900">{official.full_name}</p>
+                  <div className="h-10 border-b-2 border-gray-600 mt-3 w-56" />
+                  <p className="text-xs text-gray-500">Signature</p>
                 </div>
-              )}
-
-              {/* Signature footer */}
-              <div className="px-6 py-5 border-t">
-                <div className="flex items-end justify-between">
-                  <div className="space-y-1 min-w-[220px]">
-                    <p className="text-sm font-bold text-gray-800">{official.full_name}</p>
-                    <p className="text-xs text-muted-foreground">{official.designation}{official.department ? ` · ${official.department}` : ''}</p>
-                    <div className="h-10 border-b-2 border-gray-500 mt-4 w-52" />
-                    <p className="text-xs text-gray-500 font-medium">Signature</p>
-                  </div>
-                  <div className="text-right text-xs text-muted-foreground">
-                    <p>Date: ___________________</p>
-                  </div>
+                <div className="text-xs text-gray-400">
+                  Date: _______________
                 </div>
-              </div>
-
-              {/* Report footer */}
-              <div className="text-center py-3 border-t text-xs text-muted-foreground bg-gray-50">
-                This is a system-generated report from Scorpion Visitor Management System · Confidential
               </div>
 
             </div>
