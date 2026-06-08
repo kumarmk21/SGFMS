@@ -640,7 +640,7 @@ function AcknowledgementReport() {
     .status-pending { color: #d97706; }
     @media print {
       body { padding: 16px; }
-      @page { margin: 12mm; size: A4; }
+      @page { margin: 8mm 10mm; size: A4 landscape; }
     }
   </style>
 </head>
@@ -820,32 +820,17 @@ function AcknowledgementReport() {
                 </div>
               )}
 
-              {/* Acknowledgement & Signature */}
-              <div className="px-6 py-6 space-y-5">
-                <div className="border border-gray-200 rounded-lg p-5 bg-white">
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Acknowledgement</p>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    I, <strong>{official.full_name}</strong>, hereby acknowledge and confirm that the courier packages listed above have been duly received and recorded. I accept responsibility for all courier deliveries addressed to me during the period mentioned above.
-                  </p>
-                </div>
-
-                {/* Signature block */}
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="space-y-1">
-                    <div className="h-12 border-b-2 border-gray-400" />
-                    <p className="text-xs font-semibold text-gray-600">Employee Signature</p>
-                    <div className="h-7 border-b border-dashed border-gray-300 mt-2" />
-                    <p className="text-xs text-muted-foreground">Full Name</p>
-                    <div className="h-7 border-b border-dashed border-gray-300 mt-2" />
-                    <p className="text-xs text-muted-foreground">Date</p>
+              {/* Signature footer */}
+              <div className="px-6 py-5 border-t">
+                <div className="flex items-end justify-between">
+                  <div className="space-y-1 min-w-[220px]">
+                    <p className="text-sm font-bold text-gray-800">{official.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{official.designation}{official.department ? ` · ${official.department}` : ''}</p>
+                    <div className="h-10 border-b-2 border-gray-500 mt-4 w-52" />
+                    <p className="text-xs text-gray-500 font-medium">Signature</p>
                   </div>
-                  <div className="space-y-1">
-                    <div className="h-12 border-b-2 border-gray-400" />
-                    <p className="text-xs font-semibold text-gray-600">Authorised By (Receptionist / Admin)</p>
-                    <div className="h-7 border-b border-dashed border-gray-300 mt-2" />
-                    <p className="text-xs text-muted-foreground">Full Name</p>
-                    <div className="h-7 border-b border-dashed border-gray-300 mt-2" />
-                    <p className="text-xs text-muted-foreground">Date</p>
+                  <div className="text-right text-xs text-muted-foreground">
+                    <p>Date: ___________________</p>
                   </div>
                 </div>
               </div>
