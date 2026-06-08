@@ -514,14 +514,16 @@ function CourierReport() {
 // ─── Acknowledgement Report ───────────────────────────────────────────────────
 
 interface AckEntry {
-  date: string;
-  time: string;
-  visitorName: string;
-  mobile: string;
-  type: string;
-  purpose: string;
-  checkOut: string;
-  status: string;
+  date:          string;
+  time:          string;
+  visitorName:   string;
+  mobile:        string;
+  senderName:    string;
+  senderAddress: string;
+  tracking:      string;
+  packages:      string;
+  weight:        string;
+  description:   string;
 }
 
 function useAcknowledgementData(officialId: string, from: string, to: string) {
@@ -529,47 +531,26 @@ function useAcknowledgementData(officialId: string, from: string, to: string) {
     queryKey: ['ack-report', officialId, from, to],
     enabled: !!officialId,
     queryFn: async () => {
-      // Visitors & delivery agents
-      const { data: checkIns } = await supabase
-        .from('check_ins')
-        .select('check_in_time, check_out_time, status, purpose_of_visit, visitor:visitors(full_name, mobile_number, visitor_type)')
-        .eq('official_id', officialId)
-        .gte('check_in_time', `${from}T00:00:00+05:30`)
-        .lte('check_in_time', `${to}T23:59:59+05:30`)
-        .order('check_in_time', { ascending: true });
-
-      // Courier receipts
       const { data: couriers } = await supabase
         .from('courier_receipts')
-        .select('created_at, sender_name, tracking_number, number_of_packages, package_description, check_in:check_ins(visitor:visitors(full_name, mobile_number))')
+        .select('created_at, sender_name, sender_address, tracking_number, number_of_packages, package_description, package_weight, check_in:check_ins(visitor:visitors(full_name, mobile_number))')
         .eq('recipient_id', officialId)
         .gte('created_at', `${from}T00:00:00+05:30`)
         .lte('created_at', `${to}T23:59:59+05:30`)
         .order('created_at', { ascending: true });
 
-      const visitRows: AckEntry[] = (checkIns ?? []).map((r: any) => ({
-        date:        formatDate(r.check_in_time),
-        time:        formatTime(r.check_in_time),
-        visitorName: r.visitor?.full_name    ?? '—',
-        mobile:      r.visitor?.mobile_number ?? '—',
-        type:        getVisitorTypeLabel(r.visitor?.visitor_type ?? ''),
-        purpose:     r.purpose_of_visit ?? '—',
-        checkOut:    r.check_out_time ? formatTime(r.check_out_time) : '—',
-        status:      getStatusLabel(r.status),
+      return (couriers ?? []).map((r: any) => ({
+        date:          formatDate(r.created_at),
+        time:          formatTime(r.created_at),
+        visitorName:   r.check_in?.visitor?.full_name ?? '—',
+        mobile:        r.check_in?.visitor?.mobile_number ?? '—',
+        senderName:    r.sender_name ?? '—',
+        senderAddress: r.sender_address ?? '—',
+        tracking:      r.tracking_number ?? '—',
+        packages:      String(r.number_of_packages ?? 1),
+        weight:        r.package_weight ?? '—',
+        description:   r.package_description ?? '—',
       }));
-
-      const courierRows: AckEntry[] = (couriers ?? []).map((r: any) => ({
-        date:        formatDate(r.created_at),
-        time:        formatTime(r.created_at),
-        visitorName: r.check_in?.visitor?.full_name ?? 'Courier Agent',
-        mobile:      r.check_in?.visitor?.mobile_number ?? '—',
-        type:        'Courier',
-        purpose:     `${r.package_description ?? ''}${r.tracking_number ? ` • Tracking: ${r.tracking_number}` : ''} • ${r.number_of_packages} pkg(s)`,
-        checkOut:    '—',
-        status:      'Received',
-      }));
-
-      return [...visitRows, ...courierRows].sort((a, b) => a.date.localeCompare(b.date));
     },
   });
 }
@@ -672,9 +653,7 @@ function AcknowledgementReport() {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
   };
 
-  const totalVisitors  = rows?.filter(r => r.type === 'Visitor').length ?? 0;
-  const totalDelivery  = rows?.filter(r => r.type === 'Delivery Agent').length ?? 0;
-  const totalCouriers  = rows?.filter(r => r.type === 'Courier').length ?? 0;
+  const totalPackages  = rows?.reduce((s, r) => s + Number(r.packages || 1), 0) ?? 0;
   const generatedOn    = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 
   return (
@@ -765,7 +744,7 @@ function AcknowledgementReport() {
                   Scorpion Express
                 </h1>
                 <h2 className="text-sm text-muted-foreground mt-1">Visitor Management System</h2>
-                <h3 className="text-lg font-bold mt-3 uppercase tracking-wide">Visitor Acknowledgement Report</h3>
+                <h3 className="text-lg font-bold mt-3 uppercase tracking-wide">Courier Acknowledgement Report</h3>
               </div>
 
               {/* Meta info */}
@@ -800,7 +779,7 @@ function AcknowledgementReport() {
                   <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr style={{ backgroundColor: '#CC0000' }}>
-                        {['#', 'Date', 'Time', 'Visitor / Courier Name', 'Mobile', 'Type', 'Purpose / Description', 'Check-Out', 'Status'].map(h => (
+                        {['#', 'Date', 'Time', 'Courier Person', 'Mobile', 'Sender Name', 'Sender Address', 'Tracking #', 'Pkgs', 'Weight', 'Description'].map(h => (
                           <th key={h} className="px-3 py-2.5 text-left font-semibold text-white text-[11px] uppercase tracking-wide whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
@@ -812,21 +791,13 @@ function AcknowledgementReport() {
                           <td className="px-3 py-2 whitespace-nowrap font-medium">{r.date}</td>
                           <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{r.time}</td>
                           <td className="px-3 py-2 font-semibold">{r.visitorName}</td>
-                          <td className="px-3 py-2 font-mono">{r.mobile}</td>
-                          <td className="px-3 py-2">
-                            <span className={cn('font-semibold', r.type === 'Visitor' ? 'text-red-700' : r.type === 'Delivery Agent' ? 'text-blue-700' : 'text-purple-700')}>
-                              {r.type}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 max-w-[180px]">
-                            <span className="line-clamp-2">{r.purpose}</span>
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{r.checkOut}</td>
-                          <td className="px-3 py-2">
-                            <span className={cn('font-medium', r.status === 'Checked Out' || r.status === 'Received' ? 'text-gray-600' : r.status === 'Pending Approval' ? 'text-yellow-700' : 'text-green-700')}>
-                              {r.status}
-                            </span>
-                          </td>
+                          <td className="px-3 py-2 font-mono text-xs">{r.mobile}</td>
+                          <td className="px-3 py-2 font-semibold">{r.senderName}</td>
+                          <td className="px-3 py-2 max-w-[120px]"><span className="line-clamp-2 text-muted-foreground text-xs">{r.senderAddress}</span></td>
+                          <td className="px-3 py-2 font-mono text-xs text-purple-700">{r.tracking}</td>
+                          <td className="px-3 py-2 text-center font-bold" style={{color:'#CC0000'}}>{r.packages}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{r.weight}</td>
+                          <td className="px-3 py-2 max-w-[130px]"><span className="line-clamp-2">{r.description}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -836,12 +807,10 @@ function AcknowledgementReport() {
 
               {/* Summary */}
               {rows && rows.length > 0 && (
-                <div className="summary grid grid-cols-4 gap-4 px-6 py-4 bg-gray-50 border-t border-b">
+                <div className="summary grid grid-cols-2 gap-4 px-6 py-4 bg-gray-50 border-t border-b max-w-xs">
                   {[
-                    { label: 'Total Records',    value: rows.length },
-                    { label: 'Visitors',         value: totalVisitors },
-                    { label: 'Delivery Agents',  value: totalDelivery },
-                    { label: 'Courier Packages', value: totalCouriers },
+                    { label: 'Total Receipts',  value: rows.length },
+                    { label: 'Total Packages',  value: totalPackages },
                   ].map(({ label, value }) => (
                     <div key={label} className="text-center">
                       <p className="text-2xl font-bold" style={{ color: '#CC0000' }}>{value}</p>
@@ -856,7 +825,7 @@ function AcknowledgementReport() {
                 <div className="border border-gray-200 rounded-lg p-5 bg-white">
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Acknowledgement</p>
                   <p className="text-sm text-gray-700 leading-relaxed">
-                    I, <strong>{official.full_name}</strong>, hereby acknowledge and confirm that the visitor and courier records listed above are accurate and have been duly noted. I take responsibility for all visits and deliveries received during the period mentioned above.
+                    I, <strong>{official.full_name}</strong>, hereby acknowledge and confirm that the courier packages listed above have been duly received and recorded. I accept responsibility for all courier deliveries addressed to me during the period mentioned above.
                   </p>
                 </div>
 
