@@ -69,44 +69,50 @@ async function callOtpFn(action: 'send' | 'verify', mobile: string, otp?: string
 function OtpInput({ value, onChange, disabled }: {
   value: string; onChange: (v: string) => void; disabled?: boolean;
 }) {
-  const refs = Array.from({ length: OTP_LENGTH }, () => useRef<HTMLInputElement>(null));
+  // Single ref holding an array — avoids calling useRef inside a loop
+  const inputRefs = useRef<Array<HTMLInputElement | null>>(Array(OTP_LENGTH).fill(null));
 
-  const digits = value.padEnd(OTP_LENGTH, '').split('');
+  // Build a fixed-length digits array regardless of value length
+  const digits = Array.from({ length: OTP_LENGTH }, (_, i) => value[i] ?? '');
 
-  const focus = (i: number) => refs[i]?.current?.focus();
+  const focus = (i: number) => inputRefs.current[i]?.focus();
 
   const handleKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace') {
-      const next = digits.map((d, idx) => idx === i ? '' : d).join('').trimEnd();
-      onChange(next.padEnd(0, ''));
-      if (i > 0) setTimeout(() => focus(i - 1), 0);
+      // Clear current box, then move back
+      const next = digits.map((d, idx) => (idx === i ? '' : d)).join('');
+      onChange(next.trimEnd()); // trim trailing empties to keep length accurate
+      if (digits[i] === '' && i > 0) setTimeout(() => focus(i - 1), 0);
     }
   };
 
   const handleChange = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value.replace(/\D/g, '').slice(-1);
     if (!v) return;
-    const next = digits.map((d, idx) => idx === i ? v : d).join('');
+    const next = digits.map((d, idx) => (idx === i ? v : d)).join('');
     onChange(next);
     if (i < OTP_LENGTH - 1) setTimeout(() => focus(i + 1), 0);
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
-    if (pasted) { onChange(pasted); setTimeout(() => focus(Math.min(pasted.length, OTP_LENGTH - 1)), 0); }
+    if (pasted) {
+      onChange(pasted);
+      setTimeout(() => focus(Math.min(pasted.length, OTP_LENGTH - 1)), 0);
+    }
     e.preventDefault();
   };
 
   return (
     <div className="flex gap-2 justify-center" onPaste={handlePaste}>
-      {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+      {digits.map((digit, i) => (
         <input
           key={i}
-          ref={refs[i]}
+          ref={el => { inputRefs.current[i] = el; }}
           type="text"
           inputMode="numeric"
           maxLength={1}
-          value={digits[i] ?? ''}
+          value={digit}
           disabled={disabled}
           onChange={e => handleChange(i, e)}
           onKeyDown={e => handleKey(i, e)}
@@ -114,7 +120,7 @@ function OtpInput({ value, onChange, disabled }: {
           className={cn(
             'w-11 h-14 text-center text-xl font-bold border-2 rounded-xl outline-none transition-all',
             'focus:border-[#CC0000] focus:ring-2 focus:ring-[#CC0000]/20',
-            digits[i] ? 'border-[#CC0000] bg-red-50 text-[#CC0000]' : 'border-gray-200 bg-gray-50',
+            digit ? 'border-[#CC0000] bg-red-50 text-[#CC0000]' : 'border-gray-200 bg-gray-50',
             disabled && 'opacity-50 cursor-not-allowed'
           )}
         />
