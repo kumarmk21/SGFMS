@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Download, RefreshCw, Users, Package,
   Calendar, Clock, Search, Filter, ChevronDown,
   TrendingUp, CheckCircle2, AlertCircle, XCircle,
+  Printer, FileText, UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -510,6 +511,397 @@ function CourierReport() {
   );
 }
 
+// ─── Acknowledgement Report ───────────────────────────────────────────────────
+
+interface AckEntry {
+  date: string;
+  time: string;
+  visitorName: string;
+  mobile: string;
+  type: string;
+  purpose: string;
+  checkOut: string;
+  status: string;
+}
+
+function useAcknowledgementData(officialId: string, from: string, to: string) {
+  return useQuery({
+    queryKey: ['ack-report', officialId, from, to],
+    enabled: !!officialId,
+    queryFn: async () => {
+      // Visitors & delivery agents
+      const { data: checkIns } = await supabase
+        .from('check_ins')
+        .select('check_in_time, check_out_time, status, purpose_of_visit, visitor:visitors(full_name, mobile_number, visitor_type)')
+        .eq('official_id', officialId)
+        .gte('check_in_time', `${from}T00:00:00+05:30`)
+        .lte('check_in_time', `${to}T23:59:59+05:30`)
+        .order('check_in_time', { ascending: true });
+
+      // Courier receipts
+      const { data: couriers } = await supabase
+        .from('courier_receipts')
+        .select('created_at, sender_name, tracking_number, number_of_packages, package_description, check_in:check_ins(visitor:visitors(full_name, mobile_number))')
+        .eq('recipient_id', officialId)
+        .gte('created_at', `${from}T00:00:00+05:30`)
+        .lte('created_at', `${to}T23:59:59+05:30`)
+        .order('created_at', { ascending: true });
+
+      const visitRows: AckEntry[] = (checkIns ?? []).map((r: any) => ({
+        date:        formatDate(r.check_in_time),
+        time:        formatTime(r.check_in_time),
+        visitorName: r.visitor?.full_name    ?? '—',
+        mobile:      r.visitor?.mobile_number ?? '—',
+        type:        getVisitorTypeLabel(r.visitor?.visitor_type ?? ''),
+        purpose:     r.purpose_of_visit ?? '—',
+        checkOut:    r.check_out_time ? formatTime(r.check_out_time) : '—',
+        status:      getStatusLabel(r.status),
+      }));
+
+      const courierRows: AckEntry[] = (couriers ?? []).map((r: any) => ({
+        date:        formatDate(r.created_at),
+        time:        formatTime(r.created_at),
+        visitorName: r.check_in?.visitor?.full_name ?? 'Courier Agent',
+        mobile:      r.check_in?.visitor?.mobile_number ?? '—',
+        type:        'Courier',
+        purpose:     `${r.package_description ?? ''}${r.tracking_number ? ` • Tracking: ${r.tracking_number}` : ''} • ${r.number_of_packages} pkg(s)`,
+        checkOut:    '—',
+        status:      'Received',
+      }));
+
+      return [...visitRows, ...courierRows].sort((a, b) => a.date.localeCompare(b.date));
+    },
+  });
+}
+
+function useOfficials() {
+  return useQuery({
+    queryKey: ['officials-list'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, department, designation')
+        .eq('role', 'official')
+        .order('full_name');
+      return data ?? [];
+    },
+  });
+}
+
+function AcknowledgementReport() {
+  const [officialId, setOfficialId] = useState('');
+  const [from, setFrom] = useState(monthStartStr());
+  const [to, setTo]     = useState(todayStr());
+  const [search, setSearch] = useState('');
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const { data: officials } = useOfficials();
+  const { data: rows, isLoading, refetch } = useAcknowledgementData(officialId, from, to);
+
+  const official = officials?.find(o => o.id === officialId);
+
+  const filteredOfficials = useMemo(() => {
+    if (!officials) return [];
+    if (!search) return officials;
+    const q = search.toLowerCase();
+    return officials.filter(o =>
+      o.full_name.toLowerCase().includes(q) ||
+      (o.department ?? '').toLowerCase().includes(q)
+    );
+  }, [officials, search]);
+
+  const handlePrint = () => {
+    const content = printRef.current;
+    if (!content) return;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) return;
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>Acknowledgement Report — ${official?.full_name ?? ''}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; padding: 28px; }
+    .header { text-align: center; border-bottom: 3px solid #CC0000; padding-bottom: 16px; margin-bottom: 20px; }
+    .header h1 { font-size: 20px; color: #CC0000; letter-spacing: 1px; text-transform: uppercase; }
+    .header h2 { font-size: 13px; color: #555; margin-top: 4px; }
+    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; background: #f9f9f9; border: 1px solid #ddd; padding: 14px 16px; border-radius: 6px; }
+    .meta-item { display: flex; gap: 8px; }
+    .meta-label { color: #888; font-size: 11px; min-width: 110px; }
+    .meta-value { font-weight: 600; color: #111; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    thead tr { background: #CC0000; }
+    thead th { color: #fff; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+    tbody tr:nth-child(even) { background: #fafafa; }
+    tbody td { padding: 7px 10px; border-bottom: 1px solid #eee; font-size: 11px; vertical-align: top; }
+    .summary { background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 24px; }
+    .summary-title { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .summary-box { text-align: center; }
+    .summary-num { font-size: 20px; font-weight: 700; color: #CC0000; }
+    .summary-lbl { font-size: 10px; color: #888; }
+    .acknowledgement { border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-bottom: 28px; }
+    .ack-title { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
+    .ack-text { font-size: 11px; color: #444; line-height: 1.7; margin-bottom: 16px; }
+    .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 8px; }
+    .sign-block { }
+    .sign-line { border-bottom: 1px solid #333; margin-bottom: 6px; height: 32px; }
+    .sign-label { font-size: 10px; color: #888; }
+    .footer { text-align: center; font-size: 10px; color: #aaa; border-top: 1px solid #eee; padding-top: 12px; }
+    .badge-visitor { color: #CC0000; font-weight: 600; }
+    .badge-delivery { color: #1D4ED8; font-weight: 600; }
+    .badge-courier { color: #7C3AED; font-weight: 600; }
+    .status-in { color: #16a34a; }
+    .status-out { color: #6b7280; }
+    .status-pending { color: #d97706; }
+    @media print {
+      body { padding: 16px; }
+      @page { margin: 12mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+  ${content.innerHTML}
+</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+  };
+
+  const totalVisitors  = rows?.filter(r => r.type === 'Visitor').length ?? 0;
+  const totalDelivery  = rows?.filter(r => r.type === 'Delivery Agent').length ?? 0;
+  const totalCouriers  = rows?.filter(r => r.type === 'Courier').length ?? 0;
+  const generatedOn    = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+
+  return (
+    <div className="space-y-4">
+
+      {/* Controls */}
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Search Employee</p>
+
+          {/* Employee search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Type name or department..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Official list */}
+          {search && (
+            <div className="border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+              {filteredOfficials.length === 0 ? (
+                <p className="text-center py-4 text-sm text-muted-foreground">No officials found</p>
+              ) : filteredOfficials.map(o => (
+                <button
+                  key={o.id}
+                  onClick={() => { setOfficialId(o.id); setSearch(''); }}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-accent transition-colors border-b last:border-0',
+                    officialId === o.id && 'bg-red-50'
+                  )}
+                >
+                  <div className="w-8 h-8 rounded-full bg-[#CC0000]/10 flex items-center justify-center text-xs font-bold text-[#CC0000] shrink-0">
+                    {o.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{o.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{o.department ?? '—'}</p>
+                  </div>
+                  {officialId === o.id && <CheckCircle2 className="w-4 h-4 text-[#CC0000] ml-auto" />}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Selected official pill */}
+          {official && !search && (
+            <div className="flex items-center gap-3 px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg">
+              <UserCheck className="w-5 h-5 text-[#CC0000]" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-[#CC0000]">{official.full_name}</p>
+                <p className="text-xs text-muted-foreground">{official.designation} · {official.department}</p>
+              </div>
+              <button onClick={() => setOfficialId('')} className="text-xs text-muted-foreground hover:text-destructive">Change</button>
+            </div>
+          )}
+
+          {/* Date range */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <DateRangeBar from={from} to={to} onFrom={setFrom} onTo={setTo} onRefresh={refetch} loading={isLoading} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Print / Generate button */}
+      {official && rows && rows.length > 0 && (
+        <div className="flex justify-end">
+          <Button onClick={handlePrint} className="gap-2" style={{ backgroundColor: '#CC0000' }}>
+            <Printer className="w-4 h-4" />
+            Print Acknowledgement
+          </Button>
+        </div>
+      )}
+
+      {/* ── Printable report ── */}
+      {official && (
+        <Card className="border-2">
+          <CardContent className="p-0">
+            {/* On-screen preview */}
+            <div ref={printRef}>
+
+              {/* Report Header */}
+              <div className="header text-center border-b-4 p-6" style={{ borderColor: '#CC0000' }}>
+                <h1 className="text-2xl font-bold tracking-widest uppercase" style={{ color: '#CC0000' }}>
+                  Scorpion Express
+                </h1>
+                <h2 className="text-sm text-muted-foreground mt-1">Visitor Management System</h2>
+                <h3 className="text-lg font-bold mt-3 uppercase tracking-wide">Visitor Acknowledgement Report</h3>
+              </div>
+
+              {/* Meta info */}
+              <div className="grid grid-cols-2 gap-x-8 gap-y-2 px-6 py-4 bg-gray-50 border-b text-sm">
+                {[
+                  ['Employee Name', official.full_name],
+                  ['Department',    official.department ?? '—'],
+                  ['Designation',   official.designation ?? '—'],
+                  ['Period',        `${from} to ${to}`],
+                  ['Generated On',  generatedOn],
+                  ['Total Records', String(rows?.length ?? 0)],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex gap-3">
+                    <span className="text-xs text-muted-foreground w-28 shrink-0">{label}</span>
+                    <span className="text-xs font-semibold">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Table */}
+              {isLoading ? (
+                <div className="py-12 text-center text-muted-foreground text-sm">
+                  <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" /> Loading…
+                </div>
+              ) : !rows?.length ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No records found for this period</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr style={{ backgroundColor: '#CC0000' }}>
+                        {['#', 'Date', 'Time', 'Visitor / Courier Name', 'Mobile', 'Type', 'Purpose / Description', 'Check-Out', 'Status'].map(h => (
+                          <th key={h} className="px-3 py-2.5 text-left font-semibold text-white text-[11px] uppercase tracking-wide whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {rows.map((r, i) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}>
+                          <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                          <td className="px-3 py-2 whitespace-nowrap font-medium">{r.date}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{r.time}</td>
+                          <td className="px-3 py-2 font-semibold">{r.visitorName}</td>
+                          <td className="px-3 py-2 font-mono">{r.mobile}</td>
+                          <td className="px-3 py-2">
+                            <span className={cn('font-semibold', r.type === 'Visitor' ? 'text-red-700' : r.type === 'Delivery Agent' ? 'text-blue-700' : 'text-purple-700')}>
+                              {r.type}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 max-w-[180px]">
+                            <span className="line-clamp-2">{r.purpose}</span>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{r.checkOut}</td>
+                          <td className="px-3 py-2">
+                            <span className={cn('font-medium', r.status === 'Checked Out' || r.status === 'Received' ? 'text-gray-600' : r.status === 'Pending Approval' ? 'text-yellow-700' : 'text-green-700')}>
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Summary */}
+              {rows && rows.length > 0 && (
+                <div className="summary grid grid-cols-4 gap-4 px-6 py-4 bg-gray-50 border-t border-b">
+                  {[
+                    { label: 'Total Records',    value: rows.length },
+                    { label: 'Visitors',         value: totalVisitors },
+                    { label: 'Delivery Agents',  value: totalDelivery },
+                    { label: 'Courier Packages', value: totalCouriers },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="text-center">
+                      <p className="text-2xl font-bold" style={{ color: '#CC0000' }}>{value}</p>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Acknowledgement & Signature */}
+              <div className="px-6 py-6 space-y-5">
+                <div className="border border-gray-200 rounded-lg p-5 bg-white">
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Acknowledgement</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    I, <strong>{official.full_name}</strong>, hereby acknowledge and confirm that the visitor and courier records listed above are accurate and have been duly noted. I take responsibility for all visits and deliveries received during the period mentioned above.
+                  </p>
+                </div>
+
+                {/* Signature block */}
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-1">
+                    <div className="h-12 border-b-2 border-gray-400" />
+                    <p className="text-xs font-semibold text-gray-600">Employee Signature</p>
+                    <div className="h-7 border-b border-dashed border-gray-300 mt-2" />
+                    <p className="text-xs text-muted-foreground">Full Name</p>
+                    <div className="h-7 border-b border-dashed border-gray-300 mt-2" />
+                    <p className="text-xs text-muted-foreground">Date</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="h-12 border-b-2 border-gray-400" />
+                    <p className="text-xs font-semibold text-gray-600">Authorised By (Receptionist / Admin)</p>
+                    <div className="h-7 border-b border-dashed border-gray-300 mt-2" />
+                    <p className="text-xs text-muted-foreground">Full Name</p>
+                    <div className="h-7 border-b border-dashed border-gray-300 mt-2" />
+                    <p className="text-xs text-muted-foreground">Date</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Report footer */}
+              <div className="text-center py-3 border-t text-xs text-muted-foreground bg-gray-50">
+                This is a system-generated report from Scorpion Visitor Management System · Confidential
+              </div>
+
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!official && (
+        <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-xl">
+          <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">Search and select an employee above to generate their acknowledgement report</p>
+          <p className="text-sm mt-1">The report can be printed and physically signed</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page shell ───────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
@@ -527,14 +919,18 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="visitors">
-        <TabsList className="mb-6 h-11">
-          <TabsTrigger value="visitors" className="gap-2 px-6">
+        <TabsList className="mb-6 h-11 w-full sm:w-auto">
+          <TabsTrigger value="visitors" className="gap-2 px-5">
             <Users className="w-4 h-4" />
             Visitor Report
           </TabsTrigger>
-          <TabsTrigger value="couriers" className="gap-2 px-6">
+          <TabsTrigger value="couriers" className="gap-2 px-5">
             <Package className="w-4 h-4" />
             Courier Report
+          </TabsTrigger>
+          <TabsTrigger value="acknowledgement" className="gap-2 px-5">
+            <FileText className="w-4 h-4" />
+            Acknowledgement
           </TabsTrigger>
         </TabsList>
 
@@ -544,6 +940,10 @@ export default function ReportsPage() {
 
         <TabsContent value="couriers">
           <CourierReport />
+        </TabsContent>
+
+        <TabsContent value="acknowledgement">
+          <AcknowledgementReport />
         </TabsContent>
       </Tabs>
     </div>
