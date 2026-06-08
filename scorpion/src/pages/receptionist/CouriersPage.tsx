@@ -68,14 +68,17 @@ export default function CouriersPage() {
       number_of_packages: Number(data.number_of_packages),
     });
 
+    // Find the courier person details from the linked check-in
+    const linkedCheckIn = courierCheckIns?.find(c => c.id === selectedCheckInId);
+    const courierPerson = (linkedCheckIn as any)?.visitor;
+
     await sendNotification.mutateAsync({
-      recipient_id:       selectedRecipient.id,
-      sender_id:          profile!.id,
-      courier_receipt_id: receipt.id,
+      recipient_id:         selectedRecipient.id,
+      sender_id:            profile!.id,
+      courier_receipt_id:   receipt.id,
       title:   'Courier Package Received',
       message: `A courier package has arrived for you from ${data.sender_name}. ${Number(data.number_of_packages)} package(s) — ${data.package_description}. ${data.tracking_number ? `Tracking: ${data.tracking_number}.` : ''} Collected at reception.`,
-      notification_type: 'in_app',
-      // Extra fields for courier email
+      notification_type:    'in_app',
       sender_name:          data.sender_name,
       sender_address:       data.sender_address,
       tracking_number:      data.tracking_number ?? null,
@@ -83,6 +86,8 @@ export default function CouriersPage() {
       number_of_packages:   Number(data.number_of_packages),
       package_weight:       data.package_weight ?? null,
       check_in_time:        new Date().toISOString(),
+      courier_person_name:  courierPerson?.full_name  ?? null,
+      courier_person_mobile: courierPerson?.mobile_number ?? null,
     });
 
     setSuccess(true);

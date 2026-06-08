@@ -104,6 +104,8 @@ export interface SendNotificationPayload {
   package_description?: string;
   number_of_packages?: number;
   package_weight?: string | null;
+  courier_person_name?: string | null;
+  courier_person_mobile?: string | null;
 }
 
 export function useSendNotification() {
