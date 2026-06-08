@@ -28,7 +28,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(schema),
   });
 
@@ -177,16 +177,31 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              {/* Demo accounts */}
+              {/* Demo accounts — click to auto-fill */}
               <div
                 className="mt-6 p-4 rounded-xl text-xs"
                 style={{ backgroundColor: `${BRAND}0D`, border: `1px solid ${BRAND}25` }}
               >
-                <p className="font-bold mb-2" style={{ color: BRAND }}>Demo Accounts</p>
-                <div className="space-y-1 text-muted-foreground">
-                  <p><span className="font-medium text-foreground">Receptionist:</span> receptionist@scorpion.com / password123</p>
-                  <p><span className="font-medium text-foreground">Official:</span> official@scorpion.com / password123</p>
-                  <p><span className="font-medium text-foreground">Admin:</span> admin@scorpion.com / password123</p>
+                <p className="font-bold mb-2.5" style={{ color: BRAND }}>Demo Accounts — click to fill</p>
+                <div className="space-y-1.5">
+                  {[
+                    { label: 'Receptionist', email: 'receptionist@scorpion.com', pw: 'password123' },
+                    { label: 'Official',     email: 'official@scorpion.com',     pw: 'password123' },
+                    { label: 'Admin',        email: 'admin@scorpion.com',        pw: 'password123' },
+                  ].map(({ label, email, pw }) => (
+                    <button
+                      key={email}
+                      type="button"
+                      onClick={() => {
+                        setValue('email', email, { shouldValidate: true });
+                        setValue('password', pw,    { shouldValidate: true });
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white border text-left hover:border-[#CC0000] hover:bg-red-50 transition-colors group"
+                    >
+                      <span className="font-semibold text-foreground group-hover:text-[#CC0000]">{label}</span>
+                      <span className="text-muted-foreground font-mono">{email}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </CardContent>
