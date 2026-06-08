@@ -36,9 +36,10 @@ export function useCheckIns(filters?: { status?: string; date?: string; official
       if (filters?.status) query = query.eq('status', filters.status);
       if (filters?.officialId) query = query.eq('official_id', filters.officialId);
       if (filters?.date) {
-        const startOfDay = `${filters.date}T00:00:00`;
-        const endOfDay = `${filters.date}T23:59:59`;
-        query = query.gte('check_in_time', startOfDay).lte('check_in_time', endOfDay);
+        // Use IST timezone boundaries to avoid UTC midnight cutting across the IST day
+        query = query
+          .gte('check_in_time', `${filters.date}T00:00:00+05:30`)
+          .lte('check_in_time', `${filters.date}T23:59:59+05:30`);
       }
 
       const { data, error } = await query;
@@ -50,7 +51,7 @@ export function useCheckIns(filters?: { status?: string; date?: string; official
 }
 
 export function useTodayCheckIns() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   return useCheckIns({ date: today });
 }
 
@@ -148,19 +149,14 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      const todayStart = `${today}T00:00:00+05:30`;
 
-      const [checkedIn, pending, couriers, deliveries, visitors] = await Promise.all([
+      const [checkedIn, pending, deliveries, visitors] = await Promise.all([
         supabase.from('check_ins').select('id', { count: 'exact' }).eq('status', 'checked_in'),
         supabase.from('check_ins').select('id', { count: 'exact' }).eq('status', 'pending_approval'),
-        supabase.from('check_ins')
-          .select('id', { count: 'exact' })
-          .gte('check_in_time', `${today}T00:00:00`)
-          .eq('visitor_id', supabase.from('visitors').select('id').eq('visitor_type', 'courier') as unknown as string),
-        supabase.from('check_ins')
-          .select('id', { count: 'exact' })
-          .gte('check_in_time', `${today}T00:00:00`),
-        supabase.from('courier_receipts').select('id', { count: 'exact' }).gte('created_at', `${today}T00:00:00`),
+        supabase.from('check_ins').select('id', { count: 'exact' }).gte('check_in_time', todayStart),
+        supabase.from('courier_receipts').select('id', { count: 'exact' }).gte('created_at', todayStart),
       ]);
 
       return {

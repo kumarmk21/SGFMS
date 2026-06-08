@@ -50,7 +50,7 @@ export interface CheckIn {
 
 export interface CourierReceipt {
   id: string;
-  check_in_id: string;
+  check_in_id: string | null;
   check_in?: CheckIn;
   sender_name: string;
   sender_address: string;

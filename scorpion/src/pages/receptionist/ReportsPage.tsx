@@ -45,10 +45,19 @@ interface CourierRow {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+// Use IST for all date calculations (India Standard Time = UTC+05:30)
+const IST_LOCALE = { timeZone: 'Asia/Kolkata' } as const;
+function todayStr() {
+  return new Date().toLocaleDateString('en-CA', IST_LOCALE); // YYYY-MM-DD in IST
+}
 function monthStartStr() {
+  const d = new Date().toLocaleDateString('en-CA', IST_LOCALE);
+  return d.slice(0, 7) + '-01';
+}
+function daysAgoStr(n: number) {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  d.setDate(d.getDate() - n);
+  return d.toLocaleDateString('en-CA', IST_LOCALE);
 }
 
 function duration(checkIn: string, checkOut: string | null): string {
@@ -81,8 +90,8 @@ function useVisitorReport(from: string, to: string, type: string, status: string
           visitor:visitors(full_name, mobile_number, visitor_type),
           official:profiles!check_ins_official_id_fkey(full_name, department, designation)
         `)
-        .gte('check_in_time', `${from}T00:00:00`)
-        .lte('check_in_time', `${to}T23:59:59`)
+        .gte('check_in_time', `${from}T00:00:00+05:30`)
+        .lte('check_in_time', `${to}T23:59:59+05:30`)
         .order('check_in_time', { ascending: false });
 
       if (status && status !== 'all') q = q.eq('status', status);
@@ -111,8 +120,8 @@ function useCourierReport(from: string, to: string) {
           recipient:profiles!courier_receipts_recipient_id_fkey(full_name, department),
           check_in:check_ins(visitor:visitors(full_name, mobile_number))
         `)
-        .gte('created_at', `${from}T00:00:00`)
-        .lte('created_at', `${to}T23:59:59`)
+        .gte('created_at', `${from}T00:00:00+05:30`)
+        .lte('created_at', `${to}T23:59:59+05:30`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -153,8 +162,8 @@ function DateRangeBar({ from, to, onFrom, onTo, onRefresh, loading }: {
   const presets = [
     { label: 'Today',       from: todayStr(),    to: todayStr() },
     { label: 'This month',  from: monthStartStr(), to: todayStr() },
-    { label: 'Last 7 days', from: (() => { const d = new Date(); d.setDate(d.getDate() - 6); return d.toISOString().split('T')[0]; })(), to: todayStr() },
-    { label: 'Last 30 days',from: (() => { const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().split('T')[0]; })(), to: todayStr() },
+    { label: 'Last 7 days',  from: daysAgoStr(6),  to: todayStr() },
+    { label: 'Last 30 days', from: daysAgoStr(29), to: todayStr() },
   ];
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4">

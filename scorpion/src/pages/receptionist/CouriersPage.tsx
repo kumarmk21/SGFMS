@@ -58,7 +58,7 @@ export default function CouriersPage() {
     }
 
     const receipt = await createReceipt.mutateAsync({
-      check_in_id: selectedCheckInId ?? '',
+      check_in_id: selectedCheckInId || null,
       sender_name: data.sender_name,
       sender_address: data.sender_address,
       recipient_id: selectedRecipient.id,
