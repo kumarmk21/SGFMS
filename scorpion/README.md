@@ -29,3 +29,14 @@ npm run build
 ```
 
 The lint setup keeps existing type-hardening items visible as warnings so new UI or workflow changes are not blocked by pre-existing generated-code debt.
+
+## Cloudflare Pages
+
+Use these Git deployment settings for the Scorpion frontend:
+
+- Root directory: `scorpion`
+- Build command: `npm run build`
+- Build output directory: `dist`
+- Environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+
+The `public/_redirects` file is copied into `dist` during build so direct visits and refreshes on React routes serve `index.html`.
