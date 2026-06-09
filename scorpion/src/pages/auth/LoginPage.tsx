@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ScorpionLogo from '@/components/layout/ScorpionLogo';
 import { toast } from 'sonner';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 const BRAND = '#CC0000';
 const BRAND_DARK = '#A80000';
@@ -33,6 +34,11 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginForm) => {
+    if (!isSupabaseConfigured) {
+      toast.error('Configure Supabase in .env before signing in');
+      return;
+    }
+
     setLoading(true);
     const { error } = await signIn(data.email, data.password);
     setLoading(false);
@@ -123,6 +129,15 @@ export default function LoginPage() {
             </CardHeader>
 
             <CardContent className="px-8 pb-8">
+              {!isSupabaseConfigured && (
+                <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  <p className="font-semibold">Supabase is not configured</p>
+                  <p className="mt-1">
+                    Copy <code>.env.example</code> to <code>.env</code>, then set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.
+                  </p>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 {/* Email */}
                 <div className="space-y-1.5">
@@ -171,7 +186,7 @@ export default function LoginPage() {
                   type="submit"
                   className="w-full h-12 text-base font-semibold mt-1 transition-opacity hover:opacity-90"
                   style={{ backgroundColor: BRAND }}
-                  disabled={loading}
+                  disabled={loading || !isSupabaseConfigured}
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
                 </Button>
