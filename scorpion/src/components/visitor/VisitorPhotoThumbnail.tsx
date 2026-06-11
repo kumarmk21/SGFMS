@@ -66,45 +66,10 @@ export default function VisitorPhotoThumbnail({
       </DialogTrigger>
 
       <DialogContent className="max-w-3xl overflow-hidden border-0 p-0 sm:rounded-2xl">
-        <div className="flex items-center justify-between gap-4 border-b px-5 py-4">
+        <div className="border-b px-5 py-4 pr-12">
           <div>
             <DialogTitle className="text-base">Visitor photo</DialogTitle>
             <DialogDescription>{alt}</DialogDescription>
-          </div>
-          <div className="mr-8 flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value - ZOOM_STEP))}
-              disabled={zoom <= MIN_ZOOM}
-              aria-label="Zoom out"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setZoom(1)}
-              disabled={zoom === 1}
-              aria-label="Reset zoom"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value + ZOOM_STEP))}
-              disabled={zoom >= MAX_ZOOM}
-              aria-label="Zoom in"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-            <span className="w-12 text-right text-xs font-medium text-muted-foreground">
-              {Math.round(zoom * 100)}%
-            </span>
           </div>
         </div>
 
@@ -117,6 +82,42 @@ export default function VisitorPhotoThumbnail({
               style={{ transform: `scale(${zoom})` }}
             />
           </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 border-t px-5 py-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value - ZOOM_STEP))}
+            disabled={zoom <= MIN_ZOOM}
+            aria-label="Zoom out"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setZoom(1)}
+            disabled={zoom === 1}
+            aria-label="Reset zoom"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value + ZOOM_STEP))}
+            disabled={zoom >= MAX_ZOOM}
+            aria-label="Zoom in"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <span className="w-12 text-right text-xs font-medium text-muted-foreground">
+            {Math.round(zoom * 100)}%
+          </span>
         </div>
       </DialogContent>
     </Dialog>
