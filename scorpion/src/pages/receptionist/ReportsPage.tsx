@@ -41,7 +41,6 @@ interface CourierRow {
   package_description: string;
   number_of_packages: number;
   recipient: { full_name: string; department: string | null } | null;
-  check_in: { visitor: { full_name: string; mobile_number: string } | null } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -118,8 +117,7 @@ function useCourierReport(from: string, to: string) {
         .select(`
           id, created_at, sender_name, sender_address,
           tracking_number, package_weight, package_description, number_of_packages,
-          recipient:profiles!courier_receipts_recipient_id_fkey(full_name, department),
-          check_in:check_ins(visitor:visitors(full_name, mobile_number))
+          recipient:profiles!courier_receipts_recipient_id_fkey(full_name, department)
         `)
         .gte('created_at', `${from}T00:00:00+05:30`)
         .lte('created_at', `${to}T23:59:59+05:30`)
@@ -373,6 +371,7 @@ function CourierReport() {
   const [from, setFrom] = useState(monthStartStr());
   const [to, setTo]     = useState(todayStr());
   const [search, setSearch] = useState('');
+  const printRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, refetch } = useCourierReport(from, to);
 
@@ -383,8 +382,7 @@ function CourierReport() {
       r.sender_name.toLowerCase().includes(q) ||
       r.recipient?.full_name.toLowerCase().includes(q) ||
       (r.tracking_number ?? '').toLowerCase().includes(q) ||
-      r.package_description.toLowerCase().includes(q) ||
-      r.check_in?.visitor?.full_name.toLowerCase().includes(q)
+      r.package_description.toLowerCase().includes(q)
     );
   }, [data, search]);
 
@@ -396,12 +394,10 @@ function CourierReport() {
   }), [filtered]);
 
   const handleExport = () => {
-    const headers = ['Date', 'Time', 'Courier Person', 'Courier Mobile', 'Sender Name', 'Sender Address', 'Tracking #', 'Packages', 'Weight', 'Description', 'Recipient', 'Department'];
+    const headers = ['Date', 'Time', 'Sender Name', 'Sender Address', 'Tracking #', 'Packages', 'Weight', 'Description', 'Recipient', 'Department'];
     const rows = filtered.map(r => [
       formatDate(r.created_at),
       formatTime(r.created_at),
-      r.check_in?.visitor?.full_name ?? '',
-      r.check_in?.visitor?.mobile_number ?? '',
       r.sender_name,
       r.sender_address,
       r.tracking_number ?? '',
@@ -412,6 +408,54 @@ function CourierReport() {
       r.recipient?.department ?? '',
     ]);
     exportCSV(`courier_report_${from}_to_${to}.csv`, headers, rows);
+  };
+
+  const handlePrint = () => {
+    const content = printRef.current;
+    if (!content) return;
+
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!printWindow) return;
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>Courier Report — ${from} to ${to}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; background: #fff; padding: 24px; font-size: 11px; }
+    .print-header { text-align: center; border-bottom: 3px solid #CC0000; padding-bottom: 12px; margin-bottom: 16px; }
+    .print-header h1 { margin: 0; color: #CC0000; font-size: 20px; text-transform: uppercase; letter-spacing: 1px; }
+    .print-header p { margin: 4px 0 0; color: #555; font-size: 12px; }
+    .print-meta { display: flex; justify-content: space-between; margin-bottom: 14px; color: #555; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #CC0000; color: #fff; text-align: left; font-size: 10px; padding: 7px; text-transform: uppercase; }
+    td { border: 1px solid #e5e5e5; padding: 7px; vertical-align: top; }
+    tbody tr:nth-child(even) { background: #fafafa; }
+    .signature-box { height: 34px; min-width: 110px; border: 1px solid #333; border-radius: 2px; background: #fff; }
+    @media print {
+      body { padding: 12px; }
+      @page { margin: 8mm; size: A4 landscape; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-header">
+    <h1>Scorpion VMS Courier Report</h1>
+    <p>${from} to ${to}</p>
+  </div>
+  <div class="print-meta">
+    <span>${stats.receipts} receipt${stats.receipts !== 1 ? 's' : ''}</span>
+    <span>${stats.packages} package${stats.packages !== 1 ? 's' : ''} total</span>
+    <span>Generated ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
+  </div>
+  ${content.innerHTML}
+</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
   };
 
   return (
@@ -432,7 +476,11 @@ function CourierReport() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search sender, recipient, tracking…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9" />
         </div>
-        <Button size="sm" variant="outline" onClick={handleExport} disabled={!filtered.length} className="gap-1.5 ml-auto">
+        <Button size="sm" variant="outline" onClick={handlePrint} disabled={!filtered.length} className="gap-1.5 ml-auto">
+          <Printer className="w-4 h-4" />
+          Print
+        </Button>
+        <Button size="sm" variant="outline" onClick={handleExport} disabled={!filtered.length} className="gap-1.5">
           <Download className="w-4 h-4" />
           Export CSV
         </Button>
@@ -451,11 +499,11 @@ function CourierReport() {
               <p className="text-sm">No courier records for this period</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div ref={printRef} className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    {['#', 'Date & Time', 'Courier Person', 'Sender', 'Tracking #', 'Pkgs', 'Weight', 'Description', 'Recipient', 'Dept'].map(h => (
+                    {['#', 'Date & Time', 'Sender', 'Tracking #', 'Pkgs', 'Weight', 'Description', 'Recipient', 'Dept', 'Signature'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -467,10 +515,6 @@ function CourierReport() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <p className="font-medium text-xs">{formatDate(r.created_at)}</p>
                         <p className="text-xs text-muted-foreground">{formatTime(r.created_at)}</p>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <p className="text-xs font-semibold">{r.check_in?.visitor?.full_name ?? '—'}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{r.check_in?.visitor?.mobile_number ?? ''}</p>
                       </td>
                       <td className="px-4 py-3 max-w-[140px]">
                         <p className="text-xs font-semibold">{r.sender_name}</p>
@@ -494,6 +538,9 @@ function CourierReport() {
                         <p className="text-xs font-semibold">{r.recipient?.full_name ?? '—'}</p>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{r.recipient?.department ?? '—'}</td>
+                      <td className="px-4 py-3">
+                        <div className="signature-box h-8 min-w-28 rounded border border-gray-300 bg-white" />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
