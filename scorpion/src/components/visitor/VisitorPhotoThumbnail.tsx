@@ -92,8 +92,10 @@ export default function VisitorPhotoThumbnail({
             onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value - ZOOM_STEP))}
             disabled={zoom <= MIN_ZOOM}
             aria-label="Zoom out"
+            className="gap-2"
           >
             <ZoomOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Zoom out</span>
           </Button>
           <Button
             type="button"
@@ -102,8 +104,10 @@ export default function VisitorPhotoThumbnail({
             onClick={() => setZoom(1)}
             disabled={zoom === 1}
             aria-label="Reset zoom"
+            className="gap-2"
           >
             <RotateCcw className="h-4 w-4" />
+            <span className="hidden sm:inline">Reset</span>
           </Button>
           <Button
             type="button"
@@ -112,8 +116,10 @@ export default function VisitorPhotoThumbnail({
             onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value + ZOOM_STEP))}
             disabled={zoom >= MAX_ZOOM}
             aria-label="Zoom in"
+            className="gap-2"
           >
             <ZoomIn className="h-4 w-4" />
+            <span className="hidden sm:inline">Zoom in</span>
           </Button>
           <span className="w-12 text-right text-xs font-medium text-muted-foreground">
             {Math.round(zoom * 100)}%
