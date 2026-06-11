@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import OfficialSearchDropdown from '@/components/visitor/OfficialSearchDropdown';
 import WebcamCapture from '@/components/visitor/WebcamCapture';
+import VisitorPhotoThumbnail from '@/components/visitor/VisitorPhotoThumbnail';
 import { useAuth } from '@/context/AuthContext';
 import { useVisitorByMobile, useCreateCheckIn } from '@/hooks/useVisitors';
 import { useSendNotification } from '@/hooks/useNotifications';
@@ -406,7 +407,13 @@ export default function CheckInPage() {
                   <Label>Photo (Optional)</Label>
                   {photoUrl ? (
                     <div className="relative inline-block">
-                      <img src={photoUrl} alt="Visitor" className="w-24 h-24 rounded-xl object-cover border-2 border-primary/20" />
+                      <VisitorPhotoThumbnail
+                        src={photoUrl}
+                        alt="Visitor photo"
+                        fallback={<Camera className="h-5 w-5" />}
+                        className="h-24 w-24 border-2 border-primary/20"
+                        shape="rounded"
+                      />
                       <button
                         type="button"
                         onClick={() => setPhotoUrl(null)}

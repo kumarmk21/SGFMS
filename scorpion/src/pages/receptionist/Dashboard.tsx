@@ -7,7 +7,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import VisitorPhotoThumbnail from '@/components/visitor/VisitorPhotoThumbnail';
 import { useAuth } from '@/context/AuthContext';
 import { useTodayCheckIns } from '@/hooks/useVisitors';
 import { useTodayCourierReceipts } from '@/hooks/useCourier';
@@ -204,12 +204,13 @@ export default function ReceptionistDashboard() {
             <div className="divide-y">
               {[...pending, ...checkedIn].slice(0, 10).map((checkIn) => (
                 <div key={checkIn.id} className="flex items-center gap-4 px-6 py-3">
-                  <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarImage src={(checkIn as any).visitor?.photo_url} />
-                    <AvatarFallback className="text-xs bg-muted">
-                      {getInitials((checkIn as any).visitor?.full_name ?? '?')}
-                    </AvatarFallback>
-                  </Avatar>
+                  <VisitorPhotoThumbnail
+                    src={(checkIn as any).visitor?.photo_url}
+                    alt={`${(checkIn as any).visitor?.full_name ?? 'Visitor'} photo`}
+                    fallback={getInitials((checkIn as any).visitor?.full_name ?? '?')}
+                    className="h-9 w-9"
+                    fallbackClassName="bg-muted"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{(checkIn as any).visitor?.full_name}</p>
                     <p className="text-xs text-muted-foreground">{(checkIn as any).visitor?.mobile_number}</p>
