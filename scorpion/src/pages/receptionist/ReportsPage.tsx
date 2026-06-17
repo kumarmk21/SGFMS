@@ -12,11 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import VisitorPhotoThumbnail from '@/components/visitor/VisitorPhotoThumbnail';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import {
   cn, formatDateTime, formatDate, formatTime,
   getVisitorTypeLabel, getVisitorTypeColor, getStatusColor, getStatusLabel,
+  getInitials,
 } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -27,7 +29,7 @@ interface VisitorRow {
   check_out_time: string | null;
   status: string;
   purpose_of_visit: string | null;
-  visitor: { full_name: string; mobile_number: string; visitor_type: string } | null;
+  visitor: { full_name: string; mobile_number: string; visitor_type: string; photo_url: string | null } | null;
   official: { full_name: string; department: string | null; designation: string | null } | null;
 }
 
@@ -87,7 +89,7 @@ function useVisitorReport(from: string, to: string, type: string, status: string
         .from('check_ins')
         .select(`
           id, check_in_time, check_out_time, status, purpose_of_visit,
-          visitor:visitors(full_name, mobile_number, visitor_type),
+          visitor:visitors(full_name, mobile_number, visitor_type, photo_url),
           official:profiles!check_ins_official_id_fkey(full_name, department, designation)
         `)
         .gte('check_in_time', `${from}T00:00:00+05:30`)
@@ -310,7 +312,7 @@ function VisitorReport() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    {['#', 'Date & Time', 'Visitor', 'Mobile', 'Type', 'Purpose', 'Host Official', 'Check-Out', 'Duration', 'Status'].map(h => (
+                    {['#', 'Date & Time', 'Photo', 'Visitor', 'Mobile', 'Type', 'Purpose', 'Host Official', 'Check-Out', 'Duration', 'Status'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -322,6 +324,15 @@ function VisitorReport() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <p className="font-medium text-xs">{formatDate(r.check_in_time)}</p>
                         <p className="text-xs text-muted-foreground">{formatTime(r.check_in_time)}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <VisitorPhotoThumbnail
+                          src={r.visitor?.photo_url}
+                          alt={`${r.visitor?.full_name ?? 'Visitor'} photo`}
+                          fallback={getInitials(r.visitor?.full_name ?? '?')}
+                          className="h-9 w-9"
+                          fallbackClassName="bg-muted"
+                        />
                       </td>
                       <td className="px-4 py-3 font-semibold text-xs whitespace-nowrap">{r.visitor?.full_name ?? '—'}</td>
                       <td className="px-4 py-3 text-xs font-mono">{r.visitor?.mobile_number ?? '—'}</td>
