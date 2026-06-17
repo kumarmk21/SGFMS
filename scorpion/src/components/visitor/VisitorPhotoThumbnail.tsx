@@ -33,6 +33,7 @@ export default function VisitorPhotoThumbnail({
   shape = 'circle',
 }: VisitorPhotoThumbnailProps) {
   const [zoom, setZoom] = React.useState(1);
+  const [previewPosition, setPreviewPosition] = React.useState<{ x: number; y: number } | null>(null);
 
   const roundedClass = shape === 'circle' ? 'rounded-full' : 'rounded-xl';
   const thumbnail = (
@@ -46,8 +47,20 @@ export default function VisitorPhotoThumbnail({
     return <div className={cn('h-10 w-10 shrink-0', roundedClass, className)}>{thumbnail}</div>;
   }
 
+  const setPreviewFromPoint = (clientX: number, clientY: number) => {
+    const previewWidth = 224;
+    const previewHeight = 256;
+    setPreviewPosition({
+      x: Math.max(8, Math.min(clientX + 16, window.innerWidth - previewWidth)),
+      y: Math.max(8, Math.min(clientY + 16, window.innerHeight - previewHeight)),
+    });
+  };
+
   return (
-    <Dialog onOpenChange={(open) => open && setZoom(1)}>
+    <Dialog onOpenChange={(open) => {
+      if (open) setZoom(1);
+      setPreviewPosition(null);
+    }}>
       <DialogTrigger asChild>
         <button
           type="button"
@@ -57,6 +70,15 @@ export default function VisitorPhotoThumbnail({
             className
           )}
           aria-label={`Open ${alt}`}
+          onBlur={() => setPreviewPosition(null)}
+          onClick={() => setPreviewPosition(null)}
+          onFocus={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setPreviewFromPoint(rect.right, rect.top);
+          }}
+          onMouseEnter={(event) => setPreviewFromPoint(event.clientX, event.clientY)}
+          onMouseLeave={() => setPreviewPosition(null)}
+          onMouseMove={(event) => setPreviewFromPoint(event.clientX, event.clientY)}
         >
           {thumbnail}
           <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/35 group-hover:opacity-100 group-focus-visible:bg-black/35 group-focus-visible:opacity-100">
@@ -64,6 +86,16 @@ export default function VisitorPhotoThumbnail({
           </span>
         </button>
       </DialogTrigger>
+
+      {previewPosition && (
+        <div
+          className="pointer-events-none fixed z-[60] w-56 rounded-2xl border bg-white p-2 shadow-2xl"
+          style={{ left: previewPosition.x, top: previewPosition.y }}
+        >
+          <img src={src} alt={alt} className="h-56 w-full rounded-xl object-cover" />
+          <p className="mt-2 truncate px-1 text-xs font-medium text-foreground">{alt}</p>
+        </div>
+      )}
 
       <DialogContent className="max-w-3xl overflow-hidden border-0 p-0 sm:rounded-2xl">
         <div className="border-b px-5 py-4 pr-12">
