@@ -49,10 +49,15 @@ export default function VisitorPhotoThumbnail({
 
   const setPreviewFromPoint = (clientX: number, clientY: number) => {
     const previewWidth = 224;
-    const previewHeight = 256;
+    const previewHeight = 292;
+    const nextX = clientX + 16;
+    const nextY = clientY + 16 + previewHeight > window.innerHeight
+      ? clientY - previewHeight - 16
+      : clientY + 16;
+
     setPreviewPosition({
-      x: Math.max(8, Math.min(clientX + 16, window.innerWidth - previewWidth)),
-      y: Math.max(8, Math.min(clientY + 16, window.innerHeight - previewHeight)),
+      x: Math.max(8, Math.min(nextX, window.innerWidth - previewWidth - 8)),
+      y: Math.max(8, Math.min(nextY, window.innerHeight - previewHeight - 8)),
     });
   };
 
