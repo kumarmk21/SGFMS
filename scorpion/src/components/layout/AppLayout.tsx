@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserPlus, Package, LogOut, Bell, Users, Settings,
-  Menu, X, CheckSquare, BarChart2, PackageCheck, ScanFace, Camera
+  Menu, X, CheckSquare, BarChart2, PackageCheck
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems: NavItem[] = [
     { label: 'Dashboard',           icon: LayoutDashboard, href: '/receptionist',           roles: ['receptionist', 'admin'] },
     { label: 'New Check-In',         icon: UserPlus,        href: '/receptionist/checkin',   roles: ['receptionist', 'admin'] },
-    { label: 'Face Recognition',     icon: ScanFace,        href: '/receptionist/face-recognition', roles: ['receptionist', 'admin'] },
     { label: 'Courier Receipts',     icon: Package,         href: '/receptionist/couriers',  roles: ['receptionist', 'admin'] },
     { label: 'Outward Courier Entry', icon: PackageCheck,   href: '/receptionist/outward-courier-entry', roles: ['receptionist', 'admin'] },
     { label: 'Reports',              icon: BarChart2,       href: '/receptionist/reports',   roles: ['receptionist', 'admin'] },
@@ -41,7 +40,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Notifications',        icon: Bell,            href: '/official/notifications', roles: ['official'], badge: unreadCount ?? 0 },
     { label: 'Pending Approvals',    icon: CheckSquare,     href: '/official/approvals',     roles: ['official'] },
     { label: 'User Management',      icon: Users,           href: '/admin/users',            roles: ['admin'] },
-    { label: 'Face Entry Logs',      icon: Camera,          href: '/admin/face-entries',     roles: ['admin'] },
     { label: 'Settings',             icon: Settings,        href: '/admin/settings',         roles: ['admin'] },
   ];
 

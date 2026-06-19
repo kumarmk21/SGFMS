@@ -80,31 +80,6 @@ export interface InternalCourierTrackingRecord {
   updated_at: string;
 }
 
-export interface FaceVisitorProfile {
-  id: string;
-  full_name: string;
-  phone: string;
-  email: string | null;
-  face_descriptor: number[];
-  photo_data_url: string | null;
-  is_active: boolean;
-  created_by: string | null;
-  updated_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface FaceEntryLog {
-  id: string;
-  face_visitor_id: string;
-  visitor?: FaceVisitorProfile;
-  entry_at: string;
-  match_distance: number | null;
-  snapshot_data_url: string | null;
-  created_by: string | null;
-  created_at: string;
-}
-
 export interface Notification {
   id: string;
   recipient_id: string;
