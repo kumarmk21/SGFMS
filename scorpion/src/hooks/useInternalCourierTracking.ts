@@ -9,9 +9,9 @@ export type InternalCourierTrackingInput = Pick<
   | 'consignee'
   | 'consignor'
   | 'courier_name'
-  | 'document_tracking_number'
   | 'location'
 > & {
+  document_tracking_number?: string | null;
   status?: string | null;
   remarks?: string | null;
   extra_fields?: Record<string, unknown>;
@@ -22,6 +22,7 @@ const queryKey = ['internal-courier-tracking'];
 function normalizeInput(input: InternalCourierTrackingInput) {
   return {
     ...input,
+    document_tracking_number: input.document_tracking_number?.trim() || null,
     status: input.status?.trim() || null,
     remarks: input.remarks?.trim() || null,
     extra_fields: input.extra_fields ?? {},
@@ -102,28 +103,6 @@ export function useUpdateInternalCourierTracking() {
     },
     onError: (error) => {
       toast.error(`Failed to update entry: ${error.message}`);
-    },
-  });
-}
-
-export function useDeleteInternalCourierTracking() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('internal_courier_tracking')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
-      toast.success('Outward courier entry deleted');
-    },
-    onError: (error) => {
-      toast.error(`Failed to delete entry: ${error.message}`);
     },
   });
 }

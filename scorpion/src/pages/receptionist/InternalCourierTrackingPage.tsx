@@ -12,7 +12,6 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Trash2,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,6 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import {
   useCreateInternalCourierTracking,
-  useDeleteInternalCourierTracking,
   useInternalCourierTracking,
   useUpdateInternalCourierTracking,
 } from '@/hooks/useInternalCourierTracking';
@@ -36,7 +34,7 @@ const schema = z.object({
   consignee: z.string().min(2, 'Consignee is required'),
   consignor: z.string().min(2, 'Consignor is required'),
   courier_name: z.string().min(2, 'Courier name is required'),
-  document_tracking_number: z.string().min(2, 'Document / tracking number is required'),
+  document_tracking_number: z.string().optional(),
   location: z.string().min(2, 'Location is required'),
   status: z.string().optional(),
   remarks: z.string().optional(),
@@ -76,7 +74,6 @@ export default function InternalCourierTrackingPage() {
   const { data: records, isLoading, refetch } = useInternalCourierTracking();
   const createRecord = useCreateInternalCourierTracking();
   const updateRecord = useUpdateInternalCourierTracking();
-  const deleteRecord = useDeleteInternalCourierTracking();
 
   const {
     register,
@@ -96,7 +93,7 @@ export default function InternalCourierTrackingPage() {
       record.consignee.toLowerCase().includes(q) ||
       record.consignor.toLowerCase().includes(q) ||
       record.courier_name.toLowerCase().includes(q) ||
-      record.document_tracking_number.toLowerCase().includes(q) ||
+      (record.document_tracking_number ?? '').toLowerCase().includes(q) ||
       record.location.toLowerCase().includes(q) ||
       (record.status ?? '').toLowerCase().includes(q)
     );
@@ -120,7 +117,7 @@ export default function InternalCourierTrackingPage() {
       consignee: record.consignee,
       consignor: record.consignor,
       courier_name: record.courier_name,
-      document_tracking_number: record.document_tracking_number,
+      document_tracking_number: record.document_tracking_number ?? '',
       location: record.location,
       status: record.status ?? '',
       remarks: record.remarks ?? '',
@@ -145,13 +142,6 @@ export default function InternalCourierTrackingPage() {
     reset(defaultValues());
   };
 
-  const handleDelete = async (record: InternalCourierTrackingRecord) => {
-    const confirmed = window.confirm(`Delete courier record ${record.document_tracking_number}?`);
-    if (!confirmed) return;
-    await deleteRecord.mutateAsync(record.id);
-    if (editing?.id === record.id) handleCancelEdit();
-  };
-
   const submitting = createRecord.isPending || updateRecord.isPending;
 
   return (
@@ -159,9 +149,6 @@ export default function InternalCourierTrackingPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold">Outward Courier Entry</h1>
-          <p className="text-sm text-muted-foreground">
-            Add, view, edit, and delete outward courier movement records.
-          </p>
         </div>
         <Button variant="outline" onClick={() => refetch()} disabled={isLoading} className="gap-2">
           <RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} />
@@ -216,12 +203,11 @@ export default function InternalCourierTrackingPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="document_tracking_number">Document / Tracking Number (DOCT NO.) *</Label>
+                <Label htmlFor="document_tracking_number">Document / Tracking Number (DOCT NO.)</Label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="document_tracking_number" placeholder="DOCT / tracking no." className="pl-9" {...register('document_tracking_number')} />
+                  <Input id="document_tracking_number" placeholder="Optional DOCT / tracking no." className="pl-9" {...register('document_tracking_number')} />
                 </div>
-                {errors.document_tracking_number && <p className="text-xs text-destructive">{errors.document_tracking_number.message}</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -265,7 +251,7 @@ export default function InternalCourierTrackingPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-base">Outward Courier Records</CardTitle>
-              <CardDescription>Search, edit, or delete records from the outward courier log.</CardDescription>
+              <CardDescription>Search, view, or edit records from the outward courier log.</CardDescription>
             </div>
             <div className="relative sm:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -309,7 +295,9 @@ export default function InternalCourierTrackingPage() {
                       <td className="px-4 py-3 text-xs">{record.consignor}</td>
                       <td className="px-4 py-3 text-xs">{record.courier_name}</td>
                       <td className="px-4 py-3 text-xs font-mono">
-                        <span className="px-1.5 py-0.5 rounded bg-gray-100">{record.document_tracking_number}</span>
+                        {record.document_tracking_number
+                          ? <span className="px-1.5 py-0.5 rounded bg-gray-100">{record.document_tracking_number}</span>
+                          : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-4 py-3 text-xs">{record.location}</td>
                       <td className="px-4 py-3 text-xs">
@@ -323,17 +311,6 @@ export default function InternalCourierTrackingPage() {
                           <Button type="button" variant="outline" size="sm" onClick={() => handleEdit(record)} className="gap-1.5">
                             <Edit className="w-3.5 h-3.5" />
                             Edit
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(record)}
-                            disabled={deleteRecord.isPending}
-                            className="gap-1.5 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Delete
                           </Button>
                         </div>
                       </td>

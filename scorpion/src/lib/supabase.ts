@@ -88,7 +88,7 @@ export type Database = {
           consignee: string;
           consignor: string;
           courier_name: string;
-          document_tracking_number: string;
+          document_tracking_number: string | null;
           location: string;
           status: string | null;
           remarks: string | null;

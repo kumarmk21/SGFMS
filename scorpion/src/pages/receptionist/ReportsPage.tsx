@@ -606,7 +606,7 @@ function OutwardCourierReport() {
       r.consignee.toLowerCase().includes(q) ||
       r.consignor.toLowerCase().includes(q) ||
       r.courier_name.toLowerCase().includes(q) ||
-      r.document_tracking_number.toLowerCase().includes(q) ||
+      (r.document_tracking_number ?? '').toLowerCase().includes(q) ||
       r.location.toLowerCase().includes(q) ||
       (r.status ?? '').toLowerCase().includes(q) ||
       (r.remarks ?? '').toLowerCase().includes(q)
@@ -627,7 +627,7 @@ function OutwardCourierReport() {
       r.consignee,
       r.consignor,
       r.courier_name,
-      r.document_tracking_number,
+      r.document_tracking_number ?? '',
       r.location,
       r.status ?? '',
       r.remarks ?? '',
@@ -692,7 +692,9 @@ function OutwardCourierReport() {
                       <td className="px-4 py-3 text-xs whitespace-nowrap">{r.consignor}</td>
                       <td className="px-4 py-3 text-xs whitespace-nowrap">{r.courier_name}</td>
                       <td className="px-4 py-3 text-xs font-mono">
-                        <span className="px-1.5 py-0.5 bg-gray-100 rounded">{r.document_tracking_number}</span>
+                        {r.document_tracking_number
+                          ? <span className="px-1.5 py-0.5 bg-gray-100 rounded">{r.document_tracking_number}</span>
+                          : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-4 py-3 text-xs whitespace-nowrap">{r.location}</td>
                       <td className="px-4 py-3 text-xs whitespace-nowrap">
