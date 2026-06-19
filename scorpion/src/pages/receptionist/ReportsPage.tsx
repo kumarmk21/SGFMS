@@ -4,7 +4,7 @@ import {
   ArrowLeft, Download, RefreshCw, Users, Package,
   Calendar, Clock, Search, Filter, ChevronDown,
   TrendingUp, CheckCircle2, AlertCircle, XCircle,
-  Printer, FileText, UserCheck,
+  Printer, FileText, UserCheck, PackageCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import {
   getVisitorTypeLabel, getVisitorTypeColor, getStatusColor, getStatusLabel,
   getInitials,
 } from '@/lib/utils';
+import type { InternalCourierTrackingRecord } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,8 @@ interface CourierRow {
   number_of_packages: number;
   recipient: { full_name: string; department: string | null } | null;
 }
+
+type OutwardCourierRow = InternalCourierTrackingRecord;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,6 +130,24 @@ function useCourierReport(from: string, to: string) {
 
       if (error) throw error;
       return (data ?? []) as unknown as CourierRow[];
+    },
+  });
+}
+
+function useOutwardCourierReport(from: string, to: string) {
+  return useQuery({
+    queryKey: ['report-outward-couriers', from, to],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('internal_courier_tracking')
+        .select('*')
+        .gte('courier_date', from)
+        .lte('courier_date', to)
+        .order('courier_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data ?? []) as OutwardCourierRow[];
     },
   });
 }
@@ -569,6 +590,134 @@ function CourierReport() {
   );
 }
 
+// ─── Outward Courier Report ───────────────────────────────────────────────────
+
+function OutwardCourierReport() {
+  const [from, setFrom] = useState(monthStartStr());
+  const [to, setTo]     = useState(todayStr());
+  const [search, setSearch] = useState('');
+
+  const { data, isLoading, refetch } = useOutwardCourierReport(from, to);
+
+  const filtered = useMemo(() => {
+    if (!search || !data) return data ?? [];
+    const q = search.toLowerCase();
+    return data.filter(r =>
+      r.consignee.toLowerCase().includes(q) ||
+      r.consignor.toLowerCase().includes(q) ||
+      r.courier_name.toLowerCase().includes(q) ||
+      r.document_tracking_number.toLowerCase().includes(q) ||
+      r.location.toLowerCase().includes(q) ||
+      (r.status ?? '').toLowerCase().includes(q) ||
+      (r.remarks ?? '').toLowerCase().includes(q)
+    );
+  }, [data, search]);
+
+  const stats = useMemo(() => ({
+    total: filtered.length,
+    couriers: new Set(filtered.map(r => r.courier_name).filter(Boolean)).size,
+    delivered: filtered.filter(r => (r.status ?? '').toLowerCase().includes('delivered')).length,
+    pending: filtered.filter(r => (r.status ?? '').toLowerCase().includes('pending')).length,
+  }), [filtered]);
+
+  const handleExport = () => {
+    const headers = ['Date', 'Consignee', 'Consignor', 'Courier Name', 'DOCT No.', 'Location', 'Status', 'Remarks'];
+    const rows = filtered.map(r => [
+      formatDate(r.courier_date),
+      r.consignee,
+      r.consignor,
+      r.courier_name,
+      r.document_tracking_number,
+      r.location,
+      r.status ?? '',
+      r.remarks ?? '',
+    ]);
+    exportCSV(`outward_courier_report_${from}_to_${to}.csv`, headers, rows);
+  };
+
+  return (
+    <div className="space-y-4">
+      <DateRangeBar from={from} to={to} onFrom={setFrom} onTo={setTo} onRefresh={refetch} loading={isLoading} />
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Total Entries" value={stats.total} icon={PackageCheck} color="bg-purple-100 text-purple-600" />
+        <StatCard label="Courier Names" value={stats.couriers} icon={Package} color="bg-blue-100 text-blue-600" />
+        <StatCard label="Delivered" value={stats.delivered} icon={CheckCircle2} color="bg-green-100 text-green-600" />
+        <StatCard label="Pending" value={stats.pending} icon={AlertCircle} color="bg-yellow-100 text-yellow-600" />
+      </div>
+
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search consignee, consignor, courier, DOCT no..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <Button size="sm" variant="outline" onClick={handleExport} disabled={!filtered.length} className="gap-1.5">
+          <Download className="w-4 h-4" />
+          Export CSV
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground">
+              <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <PackageCheck className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No outward courier records for this period</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    {['#', 'Date', 'Consignee', 'Consignor', 'Courier Name', 'DOCT No.', 'Location', 'Status', 'Remarks'].map(h => (
+                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map((r, i) => (
+                    <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{filtered.length - i}</td>
+                      <td className="px-4 py-3 text-xs font-medium whitespace-nowrap">{formatDate(r.courier_date)}</td>
+                      <td className="px-4 py-3 text-xs font-semibold whitespace-nowrap">{r.consignee}</td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">{r.consignor}</td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">{r.courier_name}</td>
+                      <td className="px-4 py-3 text-xs font-mono">
+                        <span className="px-1.5 py-0.5 bg-gray-100 rounded">{r.document_tracking_number}</span>
+                      </td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">{r.location}</td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">
+                        {r.status ? <Badge variant="outline">{r.status}</Badge> : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs max-w-[220px]">
+                        <span className="line-clamp-2">{r.remarks || '—'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+        {filtered.length > 0 && (
+          <div className="px-4 py-2.5 border-t bg-gray-50/60 text-xs text-muted-foreground">
+            {filtered.length} outward courier entr{filtered.length !== 1 ? 'ies' : 'y'} · {from} to {to}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 // ─── Acknowledgement Report ───────────────────────────────────────────────────
 
 interface AckEntry {
@@ -917,6 +1066,10 @@ export default function ReportsPage() {
             <Package className="w-4 h-4" />
             Courier Report
           </TabsTrigger>
+          <TabsTrigger value="outward-couriers" className="gap-2 px-5">
+            <PackageCheck className="w-4 h-4" />
+            Outward Courier
+          </TabsTrigger>
           <TabsTrigger value="acknowledgement" className="gap-2 px-5">
             <FileText className="w-4 h-4" />
             Acknowledgement
@@ -929,6 +1082,10 @@ export default function ReportsPage() {
 
         <TabsContent value="couriers">
           <CourierReport />
+        </TabsContent>
+
+        <TabsContent value="outward-couriers">
+          <OutwardCourierReport />
         </TabsContent>
 
         <TabsContent value="acknowledgement">

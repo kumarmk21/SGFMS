@@ -158,9 +158,9 @@ export default function InternalCourierTrackingPage() {
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold">Internal Courier Tracking</h1>
+          <h1 className="text-xl font-bold">Outward Courier Entry</h1>
           <p className="text-sm text-muted-foreground">
-            Add, view, edit, and delete internal courier movement records.
+            Add, view, edit, and delete outward courier movement records.
           </p>
         </div>
         <Button variant="outline" onClick={() => refetch()} disabled={isLoading} className="gap-2">
@@ -264,8 +264,8 @@ export default function InternalCourierTrackingPage() {
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-base">Internal Courier Records</CardTitle>
-              <CardDescription>Search, edit, or delete records from the internal courier log.</CardDescription>
+              <CardTitle className="text-base">Outward Courier Records</CardTitle>
+              <CardDescription>Search, edit, or delete records from the outward courier log.</CardDescription>
             </div>
             <div className="relative sm:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -287,7 +287,7 @@ export default function InternalCourierTrackingPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <PackageCheck className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">{records?.length ? 'No records match your search' : 'No internal courier records yet'}</p>
+              <p className="text-sm">{records?.length ? 'No records match your search' : 'No outward courier records yet'}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

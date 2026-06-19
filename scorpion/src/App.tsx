@@ -83,11 +83,12 @@ function AppRoutes() {
           <CouriersPage />
         </ProtectedRoute>
       } />
-      <Route path="/receptionist/internal-courier" element={
+      <Route path="/receptionist/outward-courier-entry" element={
         <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
           <InternalCourierTrackingPage />
         </ProtectedRoute>
       } />
+      <Route path="/receptionist/internal-courier" element={<Navigate to="/receptionist/outward-courier-entry" replace />} />
       <Route path="/receptionist/checkouts" element={
         <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
           <CheckOutsPage />
