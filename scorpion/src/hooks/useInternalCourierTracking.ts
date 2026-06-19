@@ -65,7 +65,7 @@ export function useCreateInternalCourierTracking() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success('Internal courier entry added');
+      toast.success('Outward courier entry added');
     },
     onError: (error) => {
       toast.error(`Failed to add entry: ${error.message}`);
@@ -98,7 +98,7 @@ export function useUpdateInternalCourierTracking() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success('Internal courier entry updated');
+      toast.success('Outward courier entry updated');
     },
     onError: (error) => {
       toast.error(`Failed to update entry: ${error.message}`);
@@ -120,7 +120,7 @@ export function useDeleteInternalCourierTracking() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success('Internal courier entry deleted');
+      toast.success('Outward courier entry deleted');
     },
     onError: (error) => {
       toast.error(`Failed to delete entry: ${error.message}`);
