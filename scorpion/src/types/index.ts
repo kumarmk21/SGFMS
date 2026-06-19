@@ -63,6 +63,23 @@ export interface CourierReceipt {
   created_at: string;
 }
 
+export interface InternalCourierTrackingRecord {
+  id: string;
+  courier_date: string;
+  consignee: string;
+  consignor: string;
+  courier_name: string;
+  document_tracking_number: string;
+  location: string;
+  status: string | null;
+  remarks: string | null;
+  extra_fields: Record<string, unknown>;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Notification {
   id: string;
   recipient_id: string;

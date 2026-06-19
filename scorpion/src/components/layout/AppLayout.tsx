@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserPlus, Package, LogOut, Bell, Users, Settings,
-  Menu, X, CheckSquare, BarChart2
+  Menu, X, CheckSquare, BarChart2, PackageCheck
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Dashboard',           icon: LayoutDashboard, href: '/receptionist',           roles: ['receptionist', 'admin'] },
     { label: 'New Check-In',         icon: UserPlus,        href: '/receptionist/checkin',   roles: ['receptionist', 'admin'] },
     { label: 'Courier Receipts',     icon: Package,         href: '/receptionist/couriers',  roles: ['receptionist', 'admin'] },
+    { label: 'Internal Courier',     icon: PackageCheck,    href: '/receptionist/internal-courier', roles: ['receptionist', 'admin'] },
     { label: 'Reports',              icon: BarChart2,       href: '/receptionist/reports',   roles: ['receptionist', 'admin'] },
     { label: 'Dashboard',            icon: LayoutDashboard, href: '/official',               roles: ['official'] },
     { label: 'Notifications',        icon: Bell,            href: '/official/notifications', roles: ['official'], badge: unreadCount ?? 0 },

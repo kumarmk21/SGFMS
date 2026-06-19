@@ -9,6 +9,7 @@ import ReceptionistDashboard from '@/pages/receptionist/Dashboard';
 import CheckInPage from '@/pages/receptionist/CheckInPage';
 import CouriersPage from '@/pages/receptionist/CouriersPage';
 import CheckOutsPage from '@/pages/receptionist/CheckOutsPage';
+import InternalCourierTrackingPage from '@/pages/receptionist/InternalCourierTrackingPage';
 import OfficialDashboard from '@/pages/official/OfficialDashboard';
 import NotificationsPage from '@/pages/official/NotificationsPage';
 import ApprovalsPage from '@/pages/official/ApprovalsPage';
@@ -80,6 +81,11 @@ function AppRoutes() {
       <Route path="/receptionist/couriers/new" element={
         <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
           <CouriersPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/internal-courier" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <InternalCourierTrackingPage />
         </ProtectedRoute>
       } />
       <Route path="/receptionist/checkouts" element={
