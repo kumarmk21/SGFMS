@@ -25,6 +25,8 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': 'warn',
       'react-refresh/only-export-components': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/refs': 'warn',
       'react-hooks/static-components': 'warn',
       'react-hooks/set-state-in-effect': 'warn',
     },
