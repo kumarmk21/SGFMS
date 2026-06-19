@@ -5,6 +5,11 @@ const MATCH_THRESHOLD = 0.55;
 
 let modelLoadPromise: Promise<void> | null = null;
 
+interface TensorBackendControls {
+  setBackend: (backend: string) => Promise<boolean>;
+  ready: () => Promise<void>;
+}
+
 export interface FaceDetectionResult {
   descriptor: number[];
   snapshotDataUrl: string;
@@ -17,11 +22,16 @@ export interface FaceMatch {
 
 export function loadFaceRecognitionModels() {
   if (!modelLoadPromise) {
-    modelLoadPromise = Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-    ]).then(() => undefined);
+    modelLoadPromise = (async () => {
+      const tf = faceapi.tf as unknown as TensorBackendControls;
+      await tf.setBackend('webgl');
+      await tf.ready();
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      ]);
+    })();
   }
 
   return modelLoadPromise;
