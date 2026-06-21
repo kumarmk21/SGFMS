@@ -118,6 +118,11 @@ export default function FaceEntryLogsPage() {
                           <div>
                             <p className="text-xs font-semibold">{log.visitor?.full_name ?? 'Unknown visitor'}</p>
                             <p className="text-[11px] text-muted-foreground">{formatDateTime(log.entry_at)}</p>
+                            {log.match_distance !== null && (
+                              <p className="text-[11px] text-green-700">
+                                Match {Number(log.match_distance).toFixed(3)}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
