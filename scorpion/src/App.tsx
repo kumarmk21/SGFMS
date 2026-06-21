@@ -14,6 +14,7 @@ import OfficialDashboard from '@/pages/official/OfficialDashboard';
 import NotificationsPage from '@/pages/official/NotificationsPage';
 import ApprovalsPage from '@/pages/official/ApprovalsPage';
 import UserManagementPage from '@/pages/admin/UserManagementPage';
+import FaceEntryLogsPage from '@/pages/admin/FaceEntryLogsPage';
 import ReportsPage from '@/pages/receptionist/ReportsPage';
 
 const queryClient = new QueryClient({
@@ -21,6 +22,8 @@ const queryClient = new QueryClient({
     queries: { staleTime: 1000 * 30, retry: 1 },
   },
 });
+
+const FaceRecognitionPage = React.lazy(() => import('@/pages/receptionist/FaceRecognitionPage'));
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { session, profile, loading } = useAuth();
@@ -88,6 +91,13 @@ function AppRoutes() {
           <InternalCourierTrackingPage />
         </ProtectedRoute>
       } />
+      <Route path="/receptionist/face-recognition" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <React.Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading face recognition...</div>}>
+            <FaceRecognitionPage />
+          </React.Suspense>
+        </ProtectedRoute>
+      } />
       <Route path="/receptionist/internal-courier" element={<Navigate to="/receptionist/outward-courier-entry" replace />} />
       <Route path="/receptionist/checkouts" element={
         <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
@@ -121,6 +131,11 @@ function AppRoutes() {
       <Route path="/admin/users" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <UserManagementPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/face-entries" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <FaceEntryLogsPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
