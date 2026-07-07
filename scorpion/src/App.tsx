@@ -13,6 +13,7 @@ import OfficialDashboard from '@/pages/official/OfficialDashboard';
 import NotificationsPage from '@/pages/official/NotificationsPage';
 import ApprovalsPage from '@/pages/official/ApprovalsPage';
 import UserManagementPage from '@/pages/admin/UserManagementPage';
+import FaceMonitorPage from '@/pages/receptionist/FaceMonitorPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,6 +85,11 @@ function AppRoutes() {
       <Route path="/receptionist/checkouts" element={
         <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
           <CheckOutsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/face-monitor" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <FaceMonitorPage />
         </ProtectedRoute>
       } />
 

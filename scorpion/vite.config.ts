@@ -15,6 +15,7 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('@supabase')) return 'supabase';
+            if (id.includes('@vladmandic')) return 'face-api';
             if (id.includes('@tanstack')) return 'query';
             if (id.includes('@radix-ui')) return 'ui';
             if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) return 'forms';

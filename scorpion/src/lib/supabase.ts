@@ -89,6 +89,18 @@ export type Database = {
           read_at: string | null;
         };
       };
+      face_logs: {
+        Row: {
+          id: string;
+          captured_at: string;
+          photo_url: string | null;
+          face_count: number;
+          confidence: number | null;
+          camera_label: string | null;
+          logged_by: string | null;
+          created_at: string;
+        };
+      };
     };
   };
 };
