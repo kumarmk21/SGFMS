@@ -2,12 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   UserPlus, Package, CheckSquare, Users, Clock, TrendingUp,
-  ArrowRight, AlertCircle, RefreshCw
+  ArrowRight, AlertCircle, RefreshCw, BarChart2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import VisitorPhotoThumbnail from '@/components/visitor/VisitorPhotoThumbnail';
 import { useAuth } from '@/context/AuthContext';
 import { useTodayCheckIns } from '@/hooks/useVisitors';
 import { useTodayCourierReceipts } from '@/hooks/useCourier';
@@ -56,7 +56,21 @@ export default function ReceptionistDashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold">{greeting}, {profile?.full_name?.split(' ')[0]}!</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="text-sm font-medium text-gray-700">{profile?.full_name}</span>
+            {profile?.designation && (
+              <>
+                <span className="text-muted-foreground text-sm">·</span>
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: '#CC000015', color: '#CC0000' }}
+                >
+                  {profile.designation}
+                </span>
+              </>
+            )}
+          </div>
+          <p className="text-muted-foreground text-xs mt-1">
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -98,7 +112,7 @@ export default function ReceptionistDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Link to="/receptionist/checkin">
           <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer group">
             <CardContent className="p-5 flex items-center gap-4">
@@ -145,6 +159,23 @@ export default function ReceptionistDashboard() {
             </CardContent>
           </Card>
         </Link>
+        <Link to="/receptionist/reports">
+          <Card className="hover:shadow-md transition-all cursor-pointer group" style={{ borderColor: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#CC000030')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'transparent')}
+          >
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#CC000015' }}>
+                <BarChart2 className="w-6 h-6" style={{ color: '#CC0000' }} />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold">Reports</p>
+                <p className="text-xs text-muted-foreground">Visitor &amp; Courier</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Active Visitors Table */}
@@ -173,12 +204,13 @@ export default function ReceptionistDashboard() {
             <div className="divide-y">
               {[...pending, ...checkedIn].slice(0, 10).map((checkIn) => (
                 <div key={checkIn.id} className="flex items-center gap-4 px-6 py-3">
-                  <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarImage src={(checkIn as any).visitor?.photo_url} />
-                    <AvatarFallback className="text-xs bg-muted">
-                      {getInitials((checkIn as any).visitor?.full_name ?? '?')}
-                    </AvatarFallback>
-                  </Avatar>
+                  <VisitorPhotoThumbnail
+                    src={(checkIn as any).visitor?.photo_url}
+                    alt={`${(checkIn as any).visitor?.full_name ?? 'Visitor'} photo`}
+                    fallback={getInitials((checkIn as any).visitor?.full_name ?? '?')}
+                    className="h-9 w-9"
+                    fallbackClassName="bg-muted"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{(checkIn as any).visitor?.full_name}</p>
                     <p className="text-xs text-muted-foreground">{(checkIn as any).visitor?.mobile_number}</p>

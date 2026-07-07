@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import VisitorPhotoThumbnail from '@/components/visitor/VisitorPhotoThumbnail';
 import { useAuth } from '@/context/AuthContext';
 import { useCheckIns, useApproveCheckOut } from '@/hooks/useVisitors';
 import type { CheckIn } from '@/types';
@@ -49,12 +49,12 @@ export default function CheckOutsPage() {
   function CheckInCard({ checkIn, showCheckOut = false }: { checkIn: CheckIn; showCheckOut?: boolean }) {
     return (
       <div className="flex items-center gap-4 px-4 py-3">
-        <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={(checkIn as any).visitor?.photo_url} />
-          <AvatarFallback className="text-xs">
-            {getInitials((checkIn as any).visitor?.full_name ?? '?')}
-          </AvatarFallback>
-        </Avatar>
+        <VisitorPhotoThumbnail
+          src={(checkIn as any).visitor?.photo_url}
+          alt={`${(checkIn as any).visitor?.full_name ?? 'Visitor'} photo`}
+          fallback={getInitials((checkIn as any).visitor?.full_name ?? '?')}
+          className="h-10 w-10"
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-sm">{(checkIn as any).visitor?.full_name}</p>

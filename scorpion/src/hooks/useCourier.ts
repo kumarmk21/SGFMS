@@ -3,6 +3,23 @@ import { supabase } from '@/lib/supabase';
 import type { CourierReceipt } from '@/types';
 import { toast } from 'sonner';
 
+// IST offset = +05:30
+const IST_OFFSET = '+05:30';
+
+/** Convert a local YYYY-MM-DD date string to IST-aware UTC boundary timestamps */
+function istDayBounds(date: string) {
+  return {
+    start: `${date}T00:00:00${IST_OFFSET}`,
+    end:   `${date}T23:59:59${IST_OFFSET}`,
+  };
+}
+
+/** Returns today's date in IST as YYYY-MM-DD */
+function todayIST(): string {
+  return new Date()
+    .toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // en-CA = YYYY-MM-DD
+}
+
 export function useCourierReceipts(date?: string) {
   return useQuery({
     queryKey: ['courier-receipts', date],
@@ -20,7 +37,8 @@ export function useCourierReceipts(date?: string) {
         .order('created_at', { ascending: false });
 
       if (date) {
-        query = query.gte('created_at', `${date}T00:00:00`).lte('created_at', `${date}T23:59:59`);
+        const { start, end } = istDayBounds(date);
+        query = query.gte('created_at', start).lte('created_at', end);
       }
 
       const { data, error } = await query;
@@ -32,8 +50,7 @@ export function useCourierReceipts(date?: string) {
 }
 
 export function useTodayCourierReceipts() {
-  const today = new Date().toISOString().split('T')[0];
-  return useCourierReceipts(today);
+  return useCourierReceipts(todayIST());
 }
 
 export function useCreateCourierReceipt() {

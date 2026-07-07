@@ -4,8 +4,8 @@ import { CheckSquare, ArrowLeft, Loader2, CheckCircle, Clock, User } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import VisitorPhotoThumbnail from '@/components/visitor/VisitorPhotoThumbnail';
 import { useAuth } from '@/context/AuthContext';
 import { useCheckIns, useApproveCheckOut } from '@/hooks/useVisitors';
 import type { CheckIn } from '@/types';
@@ -77,12 +77,13 @@ export default function ApprovalsPage() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <Avatar className="h-12 w-12 shrink-0">
-                      <AvatarImage src={(checkIn as any).visitor?.photo_url} />
-                      <AvatarFallback className="text-sm font-semibold">
-                        {getInitials((checkIn as any).visitor?.full_name ?? '?')}
-                      </AvatarFallback>
-                    </Avatar>
+                    <VisitorPhotoThumbnail
+                      src={(checkIn as any).visitor?.photo_url}
+                      alt={`${(checkIn as any).visitor?.full_name ?? 'Visitor'} photo`}
+                      fallback={getInitials((checkIn as any).visitor?.full_name ?? '?')}
+                      className="h-12 w-12"
+                      fallbackClassName="text-sm font-semibold"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold">{(checkIn as any).visitor?.full_name}</p>
@@ -138,11 +139,12 @@ export default function ApprovalsPage() {
             <CardContent className="p-0 divide-y">
               {recentlyApproved.map((checkIn) => (
                 <div key={checkIn.id} className="flex items-center gap-3 px-4 py-3">
-                  <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarFallback className="text-xs">
-                      {getInitials((checkIn as any).visitor?.full_name ?? '?')}
-                    </AvatarFallback>
-                  </Avatar>
+                  <VisitorPhotoThumbnail
+                    src={(checkIn as any).visitor?.photo_url}
+                    alt={`${(checkIn as any).visitor?.full_name ?? 'Visitor'} photo`}
+                    fallback={getInitials((checkIn as any).visitor?.full_name ?? '?')}
+                    className="h-9 w-9"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{(checkIn as any).visitor?.full_name}</p>
                     <p className="text-xs text-muted-foreground">{timeAgo(checkIn.check_in_time)}</p>

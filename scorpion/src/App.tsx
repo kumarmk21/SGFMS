@@ -9,16 +9,21 @@ import ReceptionistDashboard from '@/pages/receptionist/Dashboard';
 import CheckInPage from '@/pages/receptionist/CheckInPage';
 import CouriersPage from '@/pages/receptionist/CouriersPage';
 import CheckOutsPage from '@/pages/receptionist/CheckOutsPage';
+import InternalCourierTrackingPage from '@/pages/receptionist/InternalCourierTrackingPage';
 import OfficialDashboard from '@/pages/official/OfficialDashboard';
 import NotificationsPage from '@/pages/official/NotificationsPage';
 import ApprovalsPage from '@/pages/official/ApprovalsPage';
 import UserManagementPage from '@/pages/admin/UserManagementPage';
+import FaceEntryLogsPage from '@/pages/admin/FaceEntryLogsPage';
+import ReportsPage from '@/pages/receptionist/ReportsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 1000 * 30, retry: 1 },
   },
 });
+
+const FaceRecognitionPage = React.lazy(() => import('@/pages/receptionist/FaceRecognitionPage'));
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { session, profile, loading } = useAuth();
@@ -27,8 +32,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-3">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <div className="w-14 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{background: "linear-gradient(145deg,#CC0000,#A80000)"}}>
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /><img src="/scorpion-logo.svg" alt="" className="sr-only" />
           </div>
           <p className="text-muted-foreground text-sm">Loading...</p>
         </div>
@@ -81,9 +86,27 @@ function AppRoutes() {
           <CouriersPage />
         </ProtectedRoute>
       } />
+      <Route path="/receptionist/outward-courier-entry" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <InternalCourierTrackingPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/face-recognition" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <React.Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading face recognition...</div>}>
+            <FaceRecognitionPage />
+          </React.Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/internal-courier" element={<Navigate to="/receptionist/outward-courier-entry" replace />} />
       <Route path="/receptionist/checkouts" element={
         <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
           <CheckOutsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/receptionist/reports" element={
+        <ProtectedRoute allowedRoles={['receptionist', 'admin']}>
+          <ReportsPage />
         </ProtectedRoute>
       } />
 
@@ -110,7 +133,11 @@ function AppRoutes() {
           <UserManagementPage />
         </ProtectedRoute>
       } />
-
+      <Route path="/admin/face-entries" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <FaceEntryLogsPage />
+        </ProtectedRoute>
+      } />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -1,26 +1,142 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  Users, Plus, ArrowLeft, Search, Loader2, UserCheck,
-  Building, Phone, Mail, Shield, Edit, X, Check
+  Users, Plus, ArrowLeft, Search, Loader2, Building, Phone,
+  Mail, Edit, Check, Download, Upload, AlertCircle,
+  CheckCircle2, XCircle, FileSpreadsheet, Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { useAllProfiles, useToggleAvailability, useUpdateProfile } from '@/hooks/useProfiles';
 import type { Profile } from '@/types';
 import { cn, getInitials } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+const VALID_ROLES = ['official', 'receptionist', 'admin'] as const;
+
+interface BulkUserRow {
+  row: number;
+  full_name: string;
+  email: string;
+  password: string;
+  role: string;
+  department: string;
+  designation: string;
+  contact_number: string;
+  errors: string[];
+}
+
+interface BulkResult {
+  email: string;
+  status: 'created' | 'error';
+  error?: string;
+}
+
+// ─── CSV helpers ─────────────────────────────────────────────────────────────
+
+const TEMPLATE_HEADERS = [
+  'full_name', 'email', 'password', 'role',
+  'department', 'designation', 'contact_number',
+];
+
+const TEMPLATE_SAMPLE_ROWS = [
+  ['Rahul Sharma',  'rahul.sharma@scorpion.com',  'Password@123', 'official',    'Finance',    'General Manager',    '+91 9876543210'],
+  ['Sarah Khan',    'sarah.khan@scorpion.com',    'Password@123', 'receptionist','Front Desk', 'Senior Receptionist', '+91 9876543211'],
+  ['Priya Nair',    'priya.nair2@scorpion.com',   'Password@123', 'official',    'HR',         'HR Manager',          '+91 9876543212'],
+];
+
+function downloadTemplate() {
+  const instructionRows = [
+    ['# SCORPION VMS — Bulk User Upload Template'],
+    ['# Instructions:'],
+    ['#   1. Do NOT modify the header row (row 5).'],
+    ['#   2. role must be one of: official | receptionist | admin'],
+    ['#   3. password must be at least 8 characters.'],
+    ['#   4. Rows starting with # are ignored.'],
+    ['#   5. department, designation, contact_number are optional.'],
+    [],
+  ];
+
+  const rows = [
+    ...instructionRows,
+    TEMPLATE_HEADERS,
+    ...TEMPLATE_SAMPLE_ROWS,
+  ];
+
+  const csv = rows
+    .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'scorpion_vms_user_upload_template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseCSV(text: string): string[][] {
+  const lines = text.split(/\r?\n/);
+  return lines
+    .filter(l => l.trim() && !l.trim().startsWith('#'))
+    .map(line => {
+      const cells: string[] = [];
+      let inQuote = false;
+      let cell = '';
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuote && line[i + 1] === '"') { cell += '"'; i++; }
+          else { inQuote = !inQuote; }
+        } else if (ch === ',' && !inQuote) {
+          cells.push(cell.trim());
+          cell = '';
+        } else {
+          cell += ch;
+        }
+      }
+      cells.push(cell.trim());
+      return cells;
+    });
+}
+
+function validateRows(rows: string[][]): BulkUserRow[] {
+  const headerIdx = rows.findIndex(r =>
+    r[0]?.toLowerCase() === 'full_name' && r[1]?.toLowerCase() === 'email'
+  );
+  const dataRows = headerIdx >= 0 ? rows.slice(headerIdx + 1) : rows;
+
+  return dataRows
+    .filter(r => r.some(c => c))
+    .map((r, i) => {
+      const [full_name = '', email = '', password = '', role = '',
+             department = '', designation = '', contact_number = ''] = r;
+      const errors: string[] = [];
+      if (!full_name) errors.push('full_name required');
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('valid email required');
+      if (!password || password.length < 8) errors.push('password min 8 chars');
+      if (!VALID_ROLES.includes(role as never)) errors.push(`role must be: ${VALID_ROLES.join(' | ')}`);
+      return { row: headerIdx >= 0 ? headerIdx + i + 2 : i + 1, full_name, email, password, role, department, designation, contact_number, errors };
+    });
+}
+
+// ─── Form schema ─────────────────────────────────────────────────────────────
 
 const createUserSchema = z.object({
   full_name: z.string().min(2, 'Name is required'),
@@ -40,6 +156,8 @@ const roleColors: Record<string, string> = {
   official: 'bg-green-100 text-green-800',
 };
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function UserManagementPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -47,9 +165,16 @@ export default function UserManagementPage() {
   const [editUser, setEditUser] = useState<Profile | null>(null);
   const [creating, setCreating] = useState(false);
 
+  // Bulk upload state
+  const [bulkRows, setBulkRows] = useState<BulkUserRow[] | null>(null);
+  const [bulkResults, setBulkResults] = useState<BulkResult[] | null>(null);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(0);
+  const [showBulk, setShowBulk] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { data: profiles, isLoading, refetch } = useAllProfiles();
   const toggleAvailability = useToggleAvailability();
-  const updateProfile = useUpdateProfile();
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
@@ -65,47 +190,126 @@ export default function UserManagementPage() {
       p.role.includes(q);
   }) ?? [];
 
+  // ── Single user creation ──────────────────────────────────────────────────
+
   const onCreateSubmit = async (data: CreateUserForm) => {
     setCreating(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          users: [{
             full_name: data.full_name,
+            email: data.email,
+            password: data.password,
             role: data.role,
-          }
-        }
+            department: data.department,
+            designation: data.designation,
+            contact_number: data.contact_number,
+          }],
+        }),
       });
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error ?? 'Failed');
+      if (result.failed > 0) throw new Error(result.results[0]?.error ?? 'Creation failed');
 
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: authData.user.id,
-        full_name: data.full_name,
-        role: data.role,
-        department: data.department || null,
-        contact_number: data.contact_number || null,
-        email: data.email,
-        designation: data.designation || null,
-        is_available: true,
-      });
-      if (profileError) throw profileError;
-
-      toast.success(`User ${data.full_name} created successfully`);
+      toast.success(`${data.full_name} created successfully`);
       reset();
       setShowCreate(false);
       refetch();
-    } catch (error: any) {
-      toast.error(error.message ?? 'Failed to create user');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create user');
     } finally {
       setCreating(false);
     }
   };
 
+  // ── File upload / parse ───────────────────────────────────────────────────
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const parsed = parseCSV(text);
+      const validated = validateRows(parsed);
+      setBulkRows(validated);
+      setBulkResults(null);
+      setBulkProgress(0);
+      setShowBulk(true);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // ── Bulk create ───────────────────────────────────────────────────────────
+
+  const handleBulkCreate = async () => {
+    if (!bulkRows) return;
+    const validRows = bulkRows.filter(r => r.errors.length === 0);
+    if (!validRows.length) { toast.error('No valid rows to upload'); return; }
+
+    setBulkUploading(true);
+    setBulkProgress(0);
+    setBulkResults(null);
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+
+      // Process in batches of 10
+      const BATCH = 10;
+      const allResults: BulkResult[] = [];
+
+      for (let i = 0; i < validRows.length; i += BATCH) {
+        const batch = validRows.slice(i, i + BATCH);
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ users: batch }),
+        });
+        const data = await res.json();
+        allResults.push(...(data.results ?? []));
+        setBulkProgress(Math.round(((i + batch.length) / validRows.length) * 100));
+      }
+
+      setBulkResults(allResults);
+      const created = allResults.filter(r => r.status === 'created').length;
+      const failed  = allResults.filter(r => r.status === 'error').length;
+      if (failed === 0) toast.success(`${created} user${created !== 1 ? 's' : ''} created successfully`);
+      else toast.warning(`${created} created, ${failed} failed — check results`);
+      refetch();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Bulk upload failed');
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
+  const invalidCount = bulkRows?.filter(r => r.errors.length > 0).length ?? 0;
+  const validCount   = bulkRows?.filter(r => r.errors.length === 0).length ?? 0;
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="p-4 lg:p-8 max-w-5xl mx-auto">
+
+      {/* Page header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -116,12 +320,48 @@ export default function UserManagementPage() {
             <p className="text-sm text-muted-foreground">{profiles?.length ?? 0} users in the system</p>
           </div>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Add User
-        </Button>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={downloadTemplate}>
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Download Template</span>
+            <span className="sm:hidden">Template</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">Upload File</span>
+            <span className="sm:hidden">Upload</span>
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.txt"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button size="sm" onClick={() => setShowCreate(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add User</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
+        </div>
       </div>
 
+      {/* Bulk upload hint banner */}
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-2.5 text-xs text-blue-700">
+        <Info className="w-4 h-4 shrink-0 mt-0.5" />
+        <span>
+          To create users in bulk: click <strong>Download Template</strong> → fill in the CSV → click <strong>Upload File</strong>.
+        </span>
+      </div>
+
+      {/* Search */}
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
@@ -132,7 +372,7 @@ export default function UserManagementPage() {
         />
       </div>
 
-      {/* Stats Row */}
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {(['admin', 'receptionist', 'official'] as const).map(role => (
           <div key={role} className="bg-white rounded-lg border p-3 text-center">
@@ -142,6 +382,7 @@ export default function UserManagementPage() {
         ))}
       </div>
 
+      {/* User list */}
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -158,7 +399,7 @@ export default function UserManagementPage() {
               {filtered.map((user) => (
                 <div key={user.id} className="flex items-center gap-4 px-4 lg:px-6 py-4">
                   <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarFallback className={cn('text-sm font-semibold', roleColors[user.role]?.replace('text-', 'text-').split(' ')[0])}>
+                    <AvatarFallback className={cn('text-sm font-semibold', roleColors[user.role])}>
                       {getInitials(user.full_name)}
                     </AvatarFallback>
                   </Avatar>
@@ -170,7 +411,19 @@ export default function UserManagementPage() {
                       </Badge>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                      {user.email && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Mail className="w-3 h-3" />{user.email}</span>}
+                      {user.email && (
+                        <span className={cn(
+                          'text-xs flex items-center gap-0.5',
+                          user.email ? 'text-muted-foreground' : 'text-red-500 font-medium'
+                        )}>
+                          <Mail className="w-3 h-3" />{user.email}
+                        </span>
+                      )}
+                      {!user.email && (
+                        <span className="text-xs text-red-500 flex items-center gap-0.5 font-medium">
+                          <Mail className="w-3 h-3" />No email — notifications won't be sent
+                        </span>
+                      )}
                       {user.department && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building className="w-3 h-3" />{user.department}</span>}
                       {user.contact_number && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Phone className="w-3 h-3" />{user.contact_number}</span>}
                     </div>
@@ -200,12 +453,12 @@ export default function UserManagementPage() {
         </CardContent>
       </Card>
 
-      {/* Create User Dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+      {/* ── Add User dialog ── */}
+      <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) reset(); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>Create a new account for a team member</DialogDescription>
+            <DialogDescription>Create a single account for a team member</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onCreateSubmit)} className="space-y-4 mt-2">
             <div className="grid grid-cols-2 gap-3">
@@ -226,10 +479,8 @@ export default function UserManagementPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Role *</Label>
-                <Select onValueChange={(v) => setValue('role', v as any)} defaultValue="official">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select onValueChange={(v) => setValue('role', v as never)} defaultValue="official">
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="official">Company Official</SelectItem>
                     <SelectItem value="receptionist">Receptionist</SelectItem>
@@ -263,7 +514,161 @@ export default function UserManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog */}
+      {/* ── Bulk Upload dialog ── */}
+      <Dialog open={showBulk} onOpenChange={(o) => {
+        if (!bulkUploading) { setShowBulk(o); if (!o) { setBulkRows(null); setBulkResults(null); } }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-primary" />
+              Bulk User Upload
+            </DialogTitle>
+            <DialogDescription>
+              Review the parsed rows, then click <strong>Create Users</strong> to process all valid entries.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Summary badges */}
+          {bulkRows && !bulkResults && (
+            <div className="flex items-center gap-3 py-2">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {validCount} valid
+              </div>
+              {invalidCount > 0 && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
+                  <XCircle className="w-3.5 h-3.5" />
+                  {invalidCount} invalid (will be skipped)
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Progress bar */}
+          {bulkUploading && (
+            <div className="space-y-1.5 py-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Creating users…</span>
+                <span>{bulkProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${bulkProgress}%`, backgroundColor: '#CC0000' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="flex-1 overflow-auto border rounded-lg">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-gray-50 border-b z-10">
+                <tr>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground w-8">#</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Full Name</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Email</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Role</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Department</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {(bulkRows ?? []).map((r) => {
+                  const result = bulkResults?.find(res => res.email.toLowerCase() === r.email.toLowerCase());
+                  return (
+                    <tr
+                      key={r.row}
+                      className={cn(
+                        'hover:bg-gray-50',
+                        r.errors.length > 0 ? 'bg-red-50/50' : '',
+                        result?.status === 'created' ? 'bg-green-50/50' : '',
+                        result?.status === 'error'   ? 'bg-red-50/50'   : '',
+                      )}
+                    >
+                      <td className="px-3 py-2 text-muted-foreground">{r.row}</td>
+                      <td className="px-3 py-2 font-medium">{r.full_name || <span className="text-muted-foreground italic">—</span>}</td>
+                      <td className="px-3 py-2">{r.email || <span className="text-muted-foreground italic">—</span>}</td>
+                      <td className="px-3 py-2">
+                        {r.role && VALID_ROLES.includes(r.role as never) ? (
+                          <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold', roleColors[r.role])}>
+                            {r.role}
+                          </span>
+                        ) : (
+                          <span className="text-red-600">{r.role || '—'}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{r.department || '—'}</td>
+                      <td className="px-3 py-2">
+                        {result ? (
+                          result.status === 'created' ? (
+                            <span className="flex items-center gap-1 text-green-700 font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Created
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-red-600" title={result.error}>
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[140px]">{result.error}</span>
+                            </span>
+                          )
+                        ) : r.errors.length > 0 ? (
+                          <span className="flex items-center gap-1 text-red-600">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span className="truncate max-w-[140px]">{r.errors.join('; ')}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Ready</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-between items-center pt-3 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={bulkUploading}
+              className="gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Upload Different File
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setShowBulk(false); setBulkRows(null); setBulkResults(null); }}
+                disabled={bulkUploading}
+              >
+                {bulkResults ? 'Close' : 'Cancel'}
+              </Button>
+              {!bulkResults && (
+                <Button
+                  size="sm"
+                  onClick={handleBulkCreate}
+                  disabled={bulkUploading || validCount === 0}
+                  className="gap-2 min-w-[130px]"
+                >
+                  {bulkUploading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</>
+                  ) : (
+                    <><CheckCircle2 className="w-4 h-4" /> Create {validCount} User{validCount !== 1 ? 's' : ''}</>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit User dialog ── */}
       {editUser && (
         <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
           <DialogContent className="max-w-lg">
@@ -279,12 +684,15 @@ export default function UserManagementPage() {
   );
 }
 
+// ─── Edit form (unchanged logic, kept separate) ───────────────────────────────
+
 function EditUserForm({ user, onClose }: { user: Profile; onClose: () => void }) {
   const updateProfile = useUpdateProfile();
   const [values, setValues] = useState({
-    full_name: user.full_name,
-    department: user.department ?? '',
-    designation: user.designation ?? '',
+    full_name:      user.full_name,
+    email:          user.email ?? '',
+    department:     user.department ?? '',
+    designation:    user.designation ?? '',
     contact_number: user.contact_number ?? '',
   });
 
@@ -292,10 +700,11 @@ function EditUserForm({ user, onClose }: { user: Profile; onClose: () => void })
     await updateProfile.mutateAsync({
       id: user.id,
       ...values,
-      department: values.department || null,
-      designation: values.designation || null,
-      contact_number: values.contact_number || null,
-    } as any);
+      email:           values.email           || null,
+      department:      values.department      || null,
+      designation:     values.designation     || null,
+      contact_number:  values.contact_number  || null,
+    } as never);
     onClose();
   };
 
@@ -304,6 +713,21 @@ function EditUserForm({ user, onClose }: { user: Profile; onClose: () => void })
       <div className="space-y-1.5">
         <Label>Full Name</Label>
         <Input value={values.full_name} onChange={e => setValues(v => ({ ...v, full_name: e.target.value }))} />
+      </div>
+      {/* Email — used for visitor arrival notifications */}
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5">
+          Email Address
+          <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">
+            used for notifications
+          </span>
+        </Label>
+        <Input
+          type="email"
+          placeholder="name@scorpiongroup.in"
+          value={values.email}
+          onChange={e => setValues(v => ({ ...v, email: e.target.value }))}
+        />
       </div>
       <div className="space-y-1.5">
         <Label>Department</Label>

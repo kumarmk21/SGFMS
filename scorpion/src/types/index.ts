@@ -50,7 +50,7 @@ export interface CheckIn {
 
 export interface CourierReceipt {
   id: string;
-  check_in_id: string;
+  check_in_id: string | null;
   check_in?: CheckIn;
   sender_name: string;
   sender_address: string;
@@ -60,6 +60,48 @@ export interface CourierReceipt {
   package_weight: string | null;
   package_description: string;
   number_of_packages: number;
+  created_at: string;
+}
+
+export interface InternalCourierTrackingRecord {
+  id: string;
+  courier_date: string;
+  consignee: string;
+  consignor: string;
+  courier_name: string;
+  document_tracking_number: string | null;
+  location: string;
+  status: string | null;
+  remarks: string | null;
+  extra_fields: Record<string, unknown>;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FaceVisitorProfile {
+  id: string;
+  full_name: string;
+  phone: string;
+  email: string | null;
+  face_descriptor: number[];
+  photo_data_url: string | null;
+  is_active: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FaceEntryLog {
+  id: string;
+  face_visitor_id: string;
+  visitor?: FaceVisitorProfile;
+  entry_at: string;
+  match_distance: number | null;
+  snapshot_data_url: string | null;
+  created_by: string | null;
   created_at: string;
 }
 
