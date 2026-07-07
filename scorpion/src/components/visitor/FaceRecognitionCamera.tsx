@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import * as faceapi from '@vladmandic/face-api';
-import { Camera, Eye, EyeOff, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Camera, Eye, EyeOff, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, Loader as Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface FaceDetectionEvent {

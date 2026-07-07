@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard, UserPlus, Package, LogOut, Bell, Users, Settings,
-  Menu, X, CheckSquare, ScanFace
-} from 'lucide-react';
+import { LayoutDashboard, UserPlus, Package, LogOut, Bell, Users, Settings, Menu, X, SquareCheck as CheckSquare, ScanFace } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
